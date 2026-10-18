@@ -53,6 +53,10 @@ const SUPPORT_MOTIONS = {
 const KYC_LEVELS = ['low', 'medium', 'high'];
 const REGION_GROUPS = ['EU', 'LATAM', 'APAC', 'MENA', 'NORDICS'];
 const VAGUE_REGIONS = ['GLOBAL', 'INT', 'INTL', 'INTERNATIONAL', 'WORLDWIDE', 'OFFSHORE'];
+const REGION_NAMES = {
+  US: 'US', UK: 'UK', CA: 'Canada', EU: 'Europe', LATAM: 'Latin America', APAC: 'Asia-Pacific', MENA: 'Middle East and North Africa',
+  NORDICS: 'the Nordics', BR: 'Brazil', MX: 'Mexico', DE: 'Germany', ES: 'Spain', IT: 'Italy', FR: 'France', AU: 'Australia', IN: 'India',
+};
 const ACRONYMS = { kyc: 'KYC', aml: 'AML', pii: 'PII', gdpr: 'GDPR', api: 'API', sla: 'SLA' };
 const MAX_LIST = 8;
 
@@ -83,7 +87,7 @@ const CHECKS = {
     const codes = v.filter((r) => typeof r === 'string').map((r) => r.trim().toUpperCase().replace(/^GB$/, 'UK'));
     const kept = codes.filter((c) => /^[A-Z]{2}$/.test(c) || REGION_GROUPS.includes(c));
     const vague = codes.filter((c) => VAGUE_REGIONS.includes(c));
-    if (kept.length) return { value: kept };
+    if (kept.length) return { value: [...new Set(kept.map((c) => REGION_NAMES[c] ?? c))] };
     return { reason: vague.length ? `too vague (${vague.join(', ')})` : 'no recognisable regions' };
   },
   kycAmlIntensity(v) {

@@ -9,7 +9,8 @@
   "scripts": {
     "start": "node bin/raphie-outreach.js",
     "test": "node --test test/*.test.js",
-    "eval": "node scripts/eval.js"
+    "eval": "node scripts/eval.js",
+    "web": "node src/web/server.js"
   },
   "engines": {
     "node": ">=18.18"

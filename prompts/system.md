@@ -101,5 +101,5 @@ Example of the voice (ApexPay Gaming, a payments provider):
 
 Return JSON matching the schema:
 - `accountType`: the company type you chose from the table.
-- `helperFactsUsed`: the helper facts you actually used, in a few words each. Empty if none.
+- `helperFactsUsed`: only facts you took from the `helper` block, not from the description, in a few words each. Empty if none.
 - `paragraphs`: the email body, 2 or 3 paragraphs, plain text, no greeting and no sign-off. The last paragraph is the call request.

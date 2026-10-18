@@ -18,7 +18,7 @@ test('tailored: uses the detailed fields, cleaned and humanised', () => {
   const a = assessHelper(ok(fx.draftkings_full));
   assert.equal(a.tier, 'tailored');
   assert.deepEqual(a.facts.likelyTicketDrivers, ['withdrawals', 'KYC', 'account access', 'promos', 'deposits', 'geolocation', 'payment methods']);
-  assert.deepEqual(a.facts.operatingRegions, ['US', 'CA']);
+  assert.deepEqual(a.facts.operatingRegions, ['US', 'Canada']);
   assert.equal(a.facts.kycAmlIntensity, 'high');
   assert.equal(status(a, 'isCryptoRelated'), 'skipped');
 });
