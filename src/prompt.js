@@ -6,6 +6,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { supportMotionNote } from './insights.js';
+import { firstNameOf } from './validator.js';
 
 export const SYSTEM_PROMPT = readFileSync(new URL('../prompts/system.md', import.meta.url), 'utf8');
 
@@ -23,8 +24,6 @@ export const EMAIL_SCHEMA = {
     paragraphs: { type: 'array', items: { type: 'string' } },
   },
 };
-
-const firstNameOf = (name) => name.trim().split(/\s+/)[0];
 
 /**
  * Helper facts the description does not already mention. These are what make

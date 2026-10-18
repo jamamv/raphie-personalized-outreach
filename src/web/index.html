@@ -244,8 +244,9 @@ async function generate() {
   setBusy(true);
   show('loadingState');
   try {
-    // Reuse the lookup already running for this company (waiting for it if needed).
-    const found = lookup.companyName === inputs.companyName ? await lookup.promise : null;
+    // Reuse the lookup for this company, starting it now if the field never lost focus.
+    if (lookup.companyName !== inputs.companyName) startLookup();
+    const found = await lookup.promise;
     const r = await api('/api/generate', { ...inputs, lookup: found?.lookup ?? null });
     if (seq !== requestSeq) return;
     if (!r.ok) {

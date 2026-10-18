@@ -53,6 +53,7 @@ export async function fetchCompanyAnalysis(
         signal: controller.signal,
       });
     } catch (err) {
+      clearTimeout(timer);
       if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
         log(`helper: no answer within ${timeoutMs}ms (${tag}), not retrying a busy server`);
         return result({ ok: false, reason: `timed out after ${timeoutMs}ms` }, attempt);
@@ -61,17 +62,20 @@ export async function fetchCompanyAnalysis(
       if (attempt === maxAttempts) return result({ ok: false, reason: `network error: ${err?.message}` }, attempt);
       await sleep(baseDelayMs * attempt + Math.random() * baseDelayMs);
       continue;
-    } finally {
-      clearTimeout(timer);
     }
 
     if (res.ok) {
+      // The timer still runs here, so a body that stalls after the headers is cut off too.
       try {
         return result({ ok: true, data: await res.json() }, attempt);
-      } catch {
-        return result({ ok: false, reason: 'response was not valid JSON' }, attempt);
+      } catch (err) {
+        const timedOut = err?.name === 'TimeoutError' || err?.name === 'AbortError';
+        return result({ ok: false, reason: timedOut ? `response body timed out after ${timeoutMs}ms` : 'response was not valid JSON' }, attempt);
+      } finally {
+        clearTimeout(timer);
       }
     }
+    clearTimeout(timer);
 
     if (!isFastFailure(res.status)) {
       log(`helper: HTTP ${res.status} (${tag}), not retrying`);

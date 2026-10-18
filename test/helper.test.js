@@ -49,3 +49,13 @@ test('invalid JSON is a failure, not a crash', async () => {
   const r = await fetchCompanyAnalysis('Big Bet', opts(async () => ({ ok: true, status: 200, json: async () => { throw new Error('bad'); } })));
   assert.deepEqual([r.ok, r.reason], [false, 'response was not valid JSON']);
 });
+
+test('a response body that stalls after the headers is cut off by the timeout', async () => {
+  const stalledBody = async (_url, { signal }) => ({
+    ok: true,
+    status: 200,
+    json: () => new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason))),
+  });
+  const r = await fetchCompanyAnalysis('Big Bet', opts(stalledBody, { attemptTimeoutMs: 30 }));
+  assert.deepEqual([r.ok, r.reason], [false, 'response body timed out after 30ms']);
+});

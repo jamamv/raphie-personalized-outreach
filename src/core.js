@@ -32,11 +32,6 @@ export function startLookup(companyName, log) {
 let client;
 const getClient = () => (client ??= new OpenAI({ apiKey: config.openaiApiKey, timeout: 60_000, maxRetries: 2 }));
 
-/**
- * @param input  { recipientName, companyName, description, tone }
- * @param lookup promise from startLookup (or a ready helper result)
- * @returns everything the CLI / UI need to show the email and explain it
- */
 /** Picks the model for this email: the larger one only when there are trusted helper facts to use. */
 export function routeModel(tier) {
   return tier === 'tailored'
@@ -44,6 +39,11 @@ export function routeModel(tier) {
     : { model: config.lightModel, reasoningEffort: config.lightReasoningEffort };
 }
 
+/**
+ * @param input  { recipientName, companyName, description, tone }
+ * @param lookup promise from startLookup (or a ready helper result)
+ * @returns everything the CLI / UI need to show the email and explain it
+ */
 export async function createEmail({ input, lookup, model, reasoningEffort, log = () => {}, record = true }) {
   const started = Date.now();
   const helper = await lookup;

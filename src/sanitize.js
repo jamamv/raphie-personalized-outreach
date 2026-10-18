@@ -21,7 +21,7 @@ export function sanitize(text) {
   out = dashed;
 
   const openers = out.replace(
-    /(^|[.!?]["'\u201d\u2019)]*\s+|\n\s*)(furthermore|additionally),?\s+(\S)/gim,
+    /(^|[.!?]["'\u201d\u2019)]*\s+|\n\s*)(furthermore|additionally)[,:]?\s+(\S)/gim,
     (_, before, _word, next) => `${before}${next.toUpperCase()}`,
   );
   if (openers !== out) fixes.push('removed "Furthermore"/"Additionally" openers');
@@ -34,7 +34,7 @@ export function sanitize(text) {
   out = fantastic;
 
   let seen = 0;
-  const bangs = out.replace(/!/g, () => (++seen > 1 ? '.' : '!'));
+  const bangs = out.replace(/!+/g, '!').replace(/!/g, () => (++seen > 1 ? '.' : '!'));
   if (bangs !== out) fixes.push('reduced exclamation marks to one');
   out = bangs;
 

@@ -137,7 +137,7 @@ Results (2 runs per scenario; full emails in `eval/results/`):
 
 The tailoring A/B, run 6 times each on gpt-5.5, shows the helper changes the email and the policy gates it. Facts only the helper knows (US and Canada) appeared in **5 of 6** emails at confidence 0.97 and **0 of 6** at 0.2, with the description unchanged.
 
-**Why gpt-5.5.** It passed every rule on the first try and stayed furthest from the examples' wording. gpt-4.1-mini is faster but copies the example sentences closely ("We help support teams automate...", "policy-aware replies").
+**Why gpt-5.5 (for tailored emails).** It passed every rule on the first try and stayed furthest from the examples' wording. The cheaper gpt-5.4-mini now handles every email without trusted helper data; see "Cost and model choice". gpt-4.1-mini is faster but copies the example sentences closely ("We help support teams automate...", "policy-aware replies").
 
 **What did not improve (honest notes).**
 - **Repetition across companies went up.** The number of 3-word phrases shared by at least half of the companies rose from 13 to 27. Most come from Alex's examples, which the new prompt uses as the house voice: every email opens "I'm reaching out from Raphie" and asks "Would you be open to...". Each recipient sees only their own email, so this matters less than per-email quality, but it is the next thing I would work on.
@@ -243,7 +243,7 @@ Every CLI or web run appends one line to `runs.jsonl` (gitignored), with a `runI
 
 ## Configuration
 
-All settings are optional except the key (see `.env.example`): `OPENAI_API_KEY`, `OPENAI_MODEL` (default `gpt-5.5`), `MAX_REPAIRS` (2), `HELPER_BUDGET_MS` (20000), `RUN_LOG` (`runs.jsonl`, or `console` on Vercel), `FEEDBACK_LOG` (`feedback.jsonl`, or `console` on Vercel), `ACCESS_CODE` (unset: no code needed), `PORT` (3000).
+All settings are optional except the key (see `.env.example`): `OPENAI_API_KEY`, `OPENAI_MODEL` and `OPENAI_REASONING_EFFORT` (tailored emails: `gpt-5.5`, `low`), `OPENAI_LIGHT_MODEL` and `OPENAI_LIGHT_REASONING_EFFORT` (all other emails: `gpt-5.4-mini`, `none`), `MAX_REPAIRS` (2), `HELPER_BUDGET_MS` (20000), `RUN_LOG` (`runs.jsonl`, or `console` on Vercel), `FEEDBACK_LOG` (`feedback.jsonl`, or `console` on Vercel), `ACCESS_CODE` (unset: no code needed), `PORT` (3000).
 
 ## With more time
 

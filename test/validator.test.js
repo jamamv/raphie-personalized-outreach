@@ -74,3 +74,15 @@ Raphie`;
   const report = validateEmail(example1);
   assert.deepEqual(report.violations.map((v) => v.rule), ['sentence_length']);
 });
+
+test('names: accents, titles and lowercase are handled the same in greeting and check', async () => {
+  const { firstNameOf } = await import('../src/validator.js');
+  assert.equal(firstNameOf('Dr. Jane Doe'), 'Jane');
+  assert.equal(firstNameOf('jane doe'), 'Jane');
+  assert.equal(firstNameOf('Mary-Jane Watson'), 'Mary-Jane');
+  for (const name of ['José García', 'Zoë Smith', 'Łukasz Nowak', 'Søren Berg']) {
+    const email = `Hi ${firstNameOf(name)},\n\nI am reaching out from Raphie about Big Bet Sports.\n\nWould you be open to a short call?\n\nBest,\nRaphie`;
+    assert.ok(validateEmail(email, { recipientName: name, companyName: 'Big Bet Sports' }).ok, name);
+  }
+  assert.ok(!validateEmail('Hi Josefina,\n\nRaphie call?', { recipientName: 'José' }).ok, 'a longer name must not count as a match');
+});

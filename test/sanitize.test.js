@@ -27,3 +27,8 @@ test('output never violates the hard bans', () => {
   for (const r of ['em_dash', 'banned_opener', 'banned_word', 'exclamations']) assert.ok(!rules.includes(r), r);
 });
 
+
+test('opener with a colon and doubled exclamation marks are fixed cleanly', () => {
+  assert.equal(sanitize('Additionally: we help.').text, 'We help.');
+  assert.equal(sanitize('Fantastic!! Really!').text, 'Great! Really.');
+});

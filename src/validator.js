@@ -41,6 +41,19 @@ export function splitSentences(text) {
 export const wordsOf = (sentence) =>
   sentence.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w));
 
+const TITLES = new Set(['mr', 'mrs', 'ms', 'miss', 'mx', 'dr', 'prof', 'sir']);
+
+/**
+ * The name used in "Hi <name>,": the first word, skipping titles such as
+ * "Dr." and capitalising an all-lowercase entry. Shared by the greeting and
+ * the name check so they can never disagree.
+ */
+export function firstNameOf(fullName = '') {
+  const words = fullName.trim().split(/\s+/).filter(Boolean);
+  const first = words.find((w) => !TITLES.has(w.toLowerCase().replace(/\.$/, ''))) ?? words[0] ?? '';
+  return first === first.toLowerCase() ? first.charAt(0).toUpperCase() + first.slice(1) : first;
+}
+
 export function firstWord(sentence) {
   const match = sentence.match(/[\p{L}\p{N}][\p{L}\p{N}'\u2019-]*/u);
   return match ? match[0].toLowerCase().replace(/\u2019/g, "'") : '';
@@ -92,8 +105,9 @@ export function validateEmail(email, { recipientName, companyName } = {}) {
   }
 
   // Required content
-  const firstName = recipientName?.trim().split(/\s+/)[0];
-  if (firstName && !new RegExp(`\\b${escapeRegex(firstName)}\\b`, 'i').test(email)) {
+  // Unicode-aware boundaries: \b only knows ASCII letters, so it rejected names like "José" or "Łukasz".
+  const firstName = firstNameOf(recipientName);
+  if (firstName && !new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegex(firstName)}(?![\\p{L}\\p{N}])`, 'iu').test(email)) {
     add('missing_recipient', `Does not address the recipient by name ("${firstName}").`);
   }
   if (companyName && !email.toLowerCase().includes(companyName.trim().toLowerCase())) {

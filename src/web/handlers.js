@@ -29,9 +29,19 @@ export function sendJson(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
+const asObject = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+
+function parseJson(text) {
+  try {
+    return asObject(JSON.parse(text || '{}'));
+  } catch {
+    throw Object.assign(new Error('Invalid JSON'), { status: 400 });
+  }
+}
+
 async function readJson(req) {
   // Vercel's Node runtime may have parsed the body already.
-  if (req.body !== undefined) return typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body ?? {};
+  if (req.body !== undefined) return typeof req.body === 'string' ? parseJson(req.body) : asObject(req.body);
   let size = 0;
   const chunks = [];
   for await (const chunk of req) {
@@ -39,11 +49,7 @@ async function readJson(req) {
     if (size > MAX_BODY) throw Object.assign(new Error('Request too large'), { status: 413 });
     chunks.push(chunk);
   }
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
-  } catch {
-    throw Object.assign(new Error('Invalid JSON'), { status: 400 });
-  }
+  return parseJson(Buffer.concat(chunks).toString('utf8'));
 }
 
 function hasAccess(req) {

@@ -38,3 +38,7 @@ test('a lookup passed back by the page is used only for the same company', () =>
   assert.equal(lookupFromBody({ lookup: { ...lookup, data: [] } }, 'Big Bet'), null);
   assert.deepEqual(lookupFromBody({ lookup: { companyName: 'Big Bet', ok: false, reason: 'HTTP 503' } }, 'Big Bet'), { ok: false, reason: 'HTTP 503' });
 });
+
+test('a JSON body that is not an object is a 400, not a crash', async () => {
+  for (const body of [null, [], 'text']) assert.equal((await call(handleGenerate, { body })).statusCode, 400);
+});
