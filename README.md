@@ -14,7 +14,7 @@ cp .env.example .env          # add your OPENAI_API_KEY
 npm start                     # CLI: asks the four questions
 npm run web                   # web UI at http://localhost:3000
 npm run feedback              # how salespeople rated the emails
-npm test                      # 40 unit tests, no network or key needed
+npm test                      # 44 unit tests, no network or key needed
 npm run eval -- --reps 2      # live eval against OpenAI (see Evaluation)
 ```
 
@@ -46,7 +46,8 @@ prompts/system.md ──► OpenAI (structured output) ──► sanitize ──
 | `src/generator.js` | OpenAI Responses API call, sanitize, validate, repair loop. |
 | `src/validator.js`, `src/sanitize.js` | The rules, in code. |
 | `src/core.js` | The shared pipeline used by the CLI and the web server. Writes `runs.jsonl`. |
-| `src/cli.js`, `src/web/` | The two interfaces. |
+| `src/cli.js`, `src/web/` | The two interfaces. `src/web/handlers.js` holds the API handlers used both locally and on Vercel. |
+| `api/`, `vercel.json`, `scripts/build-web.js` | Vercel deployment: one serverless function per endpoint, plus a build step that copies the page into `public/`. |
 | `src/feedback.js` | Validates salesperson scores and summarises them (`npm run feedback`). |
 | `scripts/eval.js`, `scripts/compare.js` | Live evaluation and before/after comparison. |
 
@@ -197,6 +198,19 @@ A single form (recipient, company, description, tone) with the result beside it.
 - **The email is editable.** Edits are checked live with the same `validator.js` the server uses (the page loads it directly), so a salesperson cannot unknowingly add an em dash (macOS turns `--` into one) or a 31-word sentence. Copy still works, labelled "Copy anyway", because the salesperson has the final say. "Undo my edits" restores the original.
 - **Feedback.** Each email can be scored 1 to 5 ("Unusable" to "Send as is") with an optional comment. The page also records whether it was copied and what share of words were changed, which is an honest signal even when nobody leaves a score. `npm run feedback` summarises it: average score, share of 4s and 5s, how often emails are edited, and scores by tone, confidence tier and model.
 - **No hidden state.** The form is the only source of inputs, and stale responses are ignored, so an old button can never act on cleared data. (The first, chat-style version had exactly that bug.)
+- **A stateless API.** `/api/lookup` returns the helper result, and the page passes it back to `/api/generate`, so the helper is called once and nothing is kept in server memory. That is what lets the same code run as serverless functions. The passed-back result goes through the same per-field allow-lists as a live helper response, so a client cannot inject anything a helper response could not.
+
+## Deploy to Vercel
+
+The repo is ready to deploy as is: static page plus one serverless function per endpoint.
+
+1. On [vercel.com](https://vercel.com), choose **Add New → Project** and import this GitHub repo. Leave the framework preset as **Other**; `vercel.json` sets the build.
+2. Under **Environment Variables**, add:
+   - `OPENAI_API_KEY`: your key.
+   - `ACCESS_CODE` (strongly recommended): any phrase. Without it, anyone with the URL can generate emails on your OpenAI bill. With it, the page asks for the code once and remembers it in that browser.
+3. Click **Deploy**.
+
+On Vercel the disk is temporary, so `runs.jsonl` and `feedback.jsonl` are written to Vercel's **Logs** tab instead (one JSON line each, `"type": "run"` or `"type": "feedback"`). For permanent feedback storage, the next step would be a small database such as Vercel Postgres or Upstash Redis. Functions may run up to 60 seconds (`vercel.json`), enough for a slow helper lookup plus generation.
 
 ## Run log
 
@@ -204,7 +218,7 @@ Every CLI or web run appends one line to `runs.jsonl` (gitignored), with a `runI
 
 ## Configuration
 
-All settings are optional except the key (see `.env.example`): `OPENAI_API_KEY`, `OPENAI_MODEL` (default `gpt-5.5`), `MAX_REPAIRS` (2), `HELPER_BUDGET_MS` (20000), `RUN_LOG` (`runs.jsonl`), `FEEDBACK_LOG` (`feedback.jsonl`), `PORT` (3000).
+All settings are optional except the key (see `.env.example`): `OPENAI_API_KEY`, `OPENAI_MODEL` (default `gpt-5.5`), `MAX_REPAIRS` (2), `HELPER_BUDGET_MS` (20000), `RUN_LOG` (`runs.jsonl`, or `console` on Vercel), `FEEDBACK_LOG` (`feedback.jsonl`, or `console` on Vercel), `ACCESS_CODE` (unset: no code needed), `PORT` (3000).
 
 ## With more time
 

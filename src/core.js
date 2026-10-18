@@ -55,8 +55,9 @@ export async function createEmail({ input, lookup, model = config.model, log = (
     explanation,
   };
 
-  if (record && config.runLog && config.runLog !== 'off') {
+  if (record) {
     await appendRunLog(config.runLog, {
+      type: 'run',
       time: new Date().toISOString(),
       runId: run.runId,
       input,

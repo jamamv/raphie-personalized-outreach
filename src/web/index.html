@@ -77,6 +77,11 @@
 <header>Raphie Outreach <span>· cold email writer</span></header>
 <main>
   <form class="panel" id="form" novalidate>
+    <div class="hidden" id="accessBox">
+      <label for="accessCode">Access code <span class="help">(ask whoever shared this link)</span></label>
+      <input type="text" id="accessCode" autocomplete="off">
+      <div class="status">Saved in this browser after the first successful request.</div>
+    </div>
     <h2>Who are you writing to?</h2>
     <label for="recipientName">Recipient's name</label>
     <input type="text" id="recipientName" placeholder="e.g. Jane Doe" maxlength="100" autocomplete="off" required>
@@ -152,7 +157,7 @@ const form = $('form');
 const fields = { recipientName: $('recipientName'), companyName: $('companyName'), description: $('description') };
 const states = ['emptyState', 'loadingState', 'errorState', 'emailState'];
 
-let lookup = { companyName: '', lookupId: null };
+let lookup = { companyName: '', promise: null };
 let current = null; // { runId, original, inputs, copied }
 let requestSeq = 0;
 let score = null;
@@ -167,27 +172,48 @@ const values = () => ({
 const isComplete = () => Object.values(values()).every(Boolean);
 const show = (id) => states.forEach((s) => $(s).classList.toggle('hidden', s !== id));
 
-async function api(method, url, body) {
-  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) });
+const store = {
+  get: (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode: fine */ } },
+};
+$('accessCode').value = store.get('accessCode');
+
+async function api(url, body) {
+  const code = $('accessCode').value.trim();
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(code && { 'x-access-code': code }) },
+    body: JSON.stringify(body),
+  });
   const json = await res.json().catch(() => ({ error: `Server error (${res.status})` }));
+  if (res.status === 401 && json.needsCode) {
+    $('accessBox').classList.remove('hidden');
+    $('accessCode').focus();
+    throw new Error(code ? 'That access code is not right.' : 'This app needs an access code. Enter it at the top of the form.');
+  }
   if (!res.ok) throw new Error(json.error || `Server error (${res.status})`);
+  if (code) store.set('accessCode', code);
   return json;
 }
 
 // --- Company lookup: starts as soon as the company name is entered ---------
-async function startLookup() {
+function startLookup() {
   const companyName = fields.companyName.value.trim();
   if (!companyName || companyName === lookup.companyName) return;
-  lookup = { companyName, lookupId: null };
+  // The result is passed back when generating, so the helper is called once.
+  const promise = api('/api/lookup', { companyName }).then((r) => r, () => null);
+  lookup = { companyName, promise };
+  showLookup(companyName, promise);
+}
+
+async function showLookup(companyName, promise) {
   const status = $('lookupStatus');
   status.className = 'status thinking';
   status.textContent = 'Looking up the company';
   try {
-    const { lookupId } = await api('POST', '/api/lookup', { companyName });
+    const r = await promise;
     if (lookup.companyName !== companyName) return;
-    lookup.lookupId = lookupId;
-    const r = await api('GET', `/api/lookup/${lookupId}`);
-    if (lookup.companyName !== companyName) return;
+    if (!r) throw new Error('lookup failed');
     const text = {
       tailored: `Company data found (confidence ${r.confidence?.toFixed(2)}): the email will be tailored.`,
       generic: `Some company data (confidence ${r.confidence?.toFixed(2)}): only broad facts will be used.`,
@@ -218,8 +244,9 @@ async function generate() {
   setBusy(true);
   show('loadingState');
   try {
-    const lookupId = lookup.companyName === inputs.companyName ? lookup.lookupId : null;
-    const r = await api('POST', '/api/generate', { ...inputs, lookupId });
+    // Reuse the lookup already running for this company (waiting for it if needed).
+    const found = lookup.companyName === inputs.companyName ? await lookup.promise : null;
+    const r = await api('/api/generate', { ...inputs, lookup: found?.lookup ?? null });
     if (seq !== requestSeq) return;
     if (!r.ok) {
       showError(`No version passed every writing rule after ${r.attempts} attempts, so nothing is shown. ${r.violations.join(' ')}`);
@@ -328,7 +355,7 @@ $('sendFeedback').addEventListener('click', async () => {
   if (!current || !score) return;
   $('sendFeedback').disabled = true;
   try {
-    await api('POST', '/api/feedback', {
+    await api('/api/feedback', {
       runId: current.runId,
       score,
       comment: $('comment').value,
@@ -355,7 +382,7 @@ $('retry').addEventListener('click', generate);
 $('clear').addEventListener('click', () => {
   requestSeq++;
   form.reset();
-  lookup = { companyName: '', lookupId: null };
+  lookup = { companyName: '', promise: null };
   current = null;
   $('lookupStatus').textContent = '';
   $('formError').classList.add('hidden');

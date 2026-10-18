@@ -15,7 +15,7 @@ const readLines = (path) =>
       })
     : [];
 
-const feedback = readLines(config.feedbackLog);
+const feedback = readLines(config.feedbackLog).filter((r) => r.score);
 if (!feedback.length) {
   console.log(`No feedback yet (${config.feedbackLog} is empty). Rate emails in the web UI with npm run web.`);
   process.exit(0);
