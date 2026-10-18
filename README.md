@@ -1,14 +1,16 @@
 # Raphie Outreach
 
-Writes cold outreach emails for Raphie's sales team. You give it a recipient, a company, a one-line description and a tone. It looks the company up with the go-to-market helper, asks OpenAI to write the email, and **only shows an email after code has verified every one of Raphie's writing rules**.
+Writes cold outreach emails for Raphie's sales team: personalised to the prospect's company, tailored with go-to-market data when that data is trustworthy, and **only shown once code has verified every one of Raphie's writing rules**. Built for the Raphie coding challenge as a CLI (the brief's requirement) and a web app for salespeople, both on one shared core.
 
-It runs as a CLI (the brief's requirement) and as a small web page for salespeople. Both use the same core.
+**Live demo:** https://raphie-personalized-outreach.vercel.app/ (the interface and company lookup work; generating emails needs an OpenAI key to be added in Vercel, see [Deploy to Vercel](#deploy-to-vercel)).
 
 ## Quick start
 
 Requires Node 20+.
 
 ```bash
+git clone https://github.com/jamamv/raphie-personalized-outreach.git
+cd raphie-personalized-outreach
 npm install
 cp .env.example .env          # add your OPENAI_API_KEY
 npm start                     # CLI: asks the four questions
@@ -21,6 +23,29 @@ npm run eval -- --reps 2      # live eval against OpenAI (see Evaluation)
 CLI flags skip the prompts: `--name`, `--company`, `--description`, `--tone direct|warm`, `--model`, `-v` (verbose), `--dry-run` (print the exact prompt without calling OpenAI).
 
 The subject line and email go to **stdout only if the email passed every rule**. Everything else (questions, the helper report, warnings) goes to stderr, so `npm start > email.txt` gives a clean file. Exit codes: `0` ok, `1` error, `2` no draft passed the rules (nothing is printed as an email).
+
+## What was built
+
+**The product evolved in three steps, each a product decision.**
+
+1. **CLI first**, as the brief asked: four questions, then the subject and email. It is still the core (`npm start`).
+2. **Then a chat interface**, because salespeople should not have to work in a terminal.
+3. **Then a form.** Using the chat showed it did not fit how a salesperson works: change one field and regenerate, edit a sentence before sending, copy with one click. A chat locks every answer into its history, and since the questions were always the same four, it was really a form dressed up as a chat. That hidden state also caused a real bug (an old "Regenerate" button ran with cleared answers). The form removed both problems.
+
+**What a salesperson gets:**
+- **An email they can trust to follow the rules.** Every email shown passes all six of Raphie's writing rules, checked by code. Edits are checked live with the same code.
+- **A subject line** written to match the email, editable and rerollable on its own.
+- **Visible reasoning.** Before generating, the page shows what the company lookup found and how confident it is; "Why this email" lists every field used, withheld or dropped, and why.
+- **One-click copy** for the subject and the email, regenerate, and undo for edits.
+- **A 1 to 5 feedback score** with a comment, plus whether the email was copied and how much was edited, so the team learns what salespeople actually find useful.
+
+**Web UI details.** A single form (recipient, company, description, tone) with the result beside it.
+
+- **The company lookup starts when you leave the company field**, and the page shows what was found before you generate ("Company data found (confidence 0.83): the email will be tailored", or "unreliable: writing from your description").
+- **The email is editable.** Edits are checked live with the same `validator.js` the server uses (the page loads it directly), so a salesperson cannot unknowingly add an em dash (macOS turns `--` into one) or a 31-word sentence. Copy still works, labelled "Copy anyway", because the salesperson has the final say. "Undo my edits" restores the original.
+- **Feedback.** Each email can be scored 1 to 5 ("Unusable" to "Send as is") with an optional comment. The page also records whether it was copied and what share of words were changed, which is an honest signal even when nobody leaves a score. `npm run feedback` summarises it: average score, share of 4s and 5s, how often emails are edited, and scores by tone, confidence tier and model.
+- **No hidden state.** The form is the only source of inputs, and stale responses are ignored, so an old button can never act on cleared data. (The first, chat-style version had exactly that bug.)
+- **A stateless API.** `/api/lookup` returns the helper result, and the page passes it back to `/api/generate`, so the helper is called once and nothing is kept in server memory. That is what lets the same code run as serverless functions. The passed-back result goes through the same per-field allow-lists as a live helper response, so a client cannot inject anything a helper response could not.
 
 ## How it works
 
@@ -52,7 +77,9 @@ prompts/system.md ──► OpenAI (structured output) ──► sanitize ──
 | `src/feedback.js` | Validates salesperson scores and summarises them (`npm run feedback`). |
 | `scripts/eval.js`, `scripts/compare.js` | Live evaluation and before/after comparison. |
 
-## What the helper endpoint actually does
+## Key decisions
+
+### Measure the helper endpoint before trusting it
 
 I measured the endpoint with about 45 calls before settling the design, because the spec only says it is "typically fast" with occasional 503s.
 
@@ -68,7 +95,7 @@ I measured the endpoint with about 45 calls before settling the design, because 
 
 Real responses, including the messy ones, are saved in `test/fixtures/helper-responses.json` and used by the tests and the eval.
 
-## Confidence policy
+### Confidence policy: three tiers, and every field checked on its own
 
 | Confidence | Tier | What the model gets |
 |---|---|---|
@@ -95,7 +122,7 @@ Helper confidence 0.99 → tailored, specific helper facts allowed
 
 **Fields treated as noise:** `vertical` (Raphie only targets iGaming), `isCryptoRelated: false` (absence of crypto is not a talking point), and vague regions like "INTL" or "global".
 
-## How the writing rules are enforced
+### The model writes; code enforces the rules
 
 The model is asked to follow the rules, but **code decides**.
 
@@ -115,7 +142,7 @@ Structural problems go back to the model with the offending sentences quoted, at
 
 **The brief's own examples break the 30-word rule.** Example #1 has a 32-word sentence; example #2 has 32- and 33-word sentences. Models imitate examples more than they follow rules, so the examples in `prompts/system.md` are the originals with only those sentences trimmed to 30 words or fewer. They still read like Alex's examples, and they no longer teach the model to break the rule it is checked on.
 
-## Prompt design
+### Prompt design: instructions and data kept apart
 
 - **Instructions and data are separate.** `prompts/system.md` holds every instruction, readable as a document. The inputs and helper facts go in a `<data>` block that the model is told to treat as information, never instructions. Helper tag lists are reduced to plain labels, so free text from the endpoint cannot inject instructions.
 - **Facts go in as data, not sentences.** The first version described each company type in polished prose, and the model pasted it into every email ("Given your US footprint" appeared verbatim). Now the cheat sheet is a terse table and helper facts are short labels.
@@ -124,29 +151,7 @@ Structural problems go back to the model with the offending sentences quoted, at
 - **Structured output.** The model returns `{accountType, helperFactsUsed, paragraphs}`. Code adds "Hi {first name}," and the sign-off, so those can never be wrong, and the chosen company type is visible for checking.
 - **Model.** Routed by confidence tier: `gpt-5.5` with low reasoning when there are trusted helper facts, `gpt-5.4-mini` without reasoning otherwise. See "Cost and model choice".
 
-## Evaluation
-
-`npm run eval` runs 9 fixed scenarios against the live OpenAI API, with **recorded** helper responses so the model is the only variable. Scenarios: both brief examples, an affiliate, a crypto casino, a conflict (helper says "platform", description says payments), an unknown company the helper thinks is a manufacturer, a helper outage, a junk company type at 0.99, and a tailoring A/B (the same description and helper payload at confidence 0.97 and 0.2). `npm run compare` rescores saved runs with the current checks.
-
-Results (2 runs per scenario; full emails in `eval/results/`):
-
-| | Baseline (first version) | Now, gpt-5.5 | gpt-5.4-mini | gpt-4.1-mini |
-|---|---|---|---|---|
-| Passes every rule (after repair) | 100% | 100% | 100% | 100% |
-| Passes on the first try | 83% | **100%** | 94% | 89% |
-| Writes for the right company type | 100% | 100% | 100% | 100% |
-| No helper facts leak at low confidence | 100% | 100% | 100% | 100% |
-| Avg seconds per email | 1.3 | 3.0 | 2.8 | 1.8 |
-
-The tailoring A/B, run 6 times each on gpt-5.5, shows the helper changes the email and the policy gates it. Facts only the helper knows (US and Canada) appeared in **5 of 6** emails at confidence 0.97 and **0 of 6** at 0.2, with the description unchanged.
-
-**Why gpt-5.5 (for tailored emails).** It passed every rule on the first try and stayed furthest from the examples' wording. The cheaper gpt-5.4-mini now handles every email without trusted helper data; see "Cost and model choice". gpt-4.1-mini is faster but copies the example sentences closely ("We help support teams automate...", "policy-aware replies").
-
-**What did not improve (honest notes).**
-- **Repetition across companies went up.** The number of 3-word phrases shared by at least half of the companies rose from 13 to 27. Most come from Alex's examples, which the new prompt uses as the house voice: every email opens "I'm reaching out from Raphie" and asks "Would you be open to...". Each recipient sees only their own email, so this matters less than per-email quality, but it is the next thing I would work on.
-- **The A/B scores the same as the baseline on regions.** The baseline also mentioned the US, through a hard-coded sentence in code ("US state-by-state requirements"). The real differences are elsewhere: the baseline discarded `likelyTicketDrivers` and `complianceThemes`, let a junk 0.71 payload drive its region text, cancelled-and-retried slow helper calls (one run took 24s), and printed failing drafts to stdout.
-
-## Cost and model choice
+### Cost and model choice: reasoning only where it pays off
 
 Every eval run records real token usage (input, cached input, output, reasoning) and prices it with OpenAI's published rates (`scripts/prices.js`). Same 9 scenarios, 2 runs each:
 
@@ -170,6 +175,28 @@ What the numbers say:
 So the default **routes by confidence tier**: emails with trusted helper data (the tailored tier) use gpt-5.5 with low reasoning; everything else (generic, ignored, helper down) uses gpt-5.4-mini with reasoning off, about 12 times cheaper per email. Override with `OPENAI_MODEL`, `OPENAI_LIGHT_MODEL` and their `_REASONING_EFFORT` variables, or `--model` to force one model. At $0.01 per email, cost is not what limits this tool, but the routing keeps spend tied to where it changes the output.
 
 **Next step with more time:** move the "which helper fact to use" decision from the model into code (pick the most specific fact deterministically and pass it as a must-mention). Then the cheap model would only need to follow an instruction, not make a judgement, and could likely handle the tailored tier too.
+
+## Evaluation
+
+`npm run eval` runs 9 fixed scenarios against the live OpenAI API, with **recorded** helper responses so the model is the only variable. Scenarios: both brief examples, an affiliate, a crypto casino, a conflict (helper says "platform", description says payments), an unknown company the helper thinks is a manufacturer, a helper outage, a junk company type at 0.99, and a tailoring A/B (the same description and helper payload at confidence 0.97 and 0.2). `npm run compare` rescores saved runs with the current checks.
+
+Results (2 runs per scenario; full emails in `eval/results/`):
+
+| | Baseline (first version) | Now, gpt-5.5 | gpt-5.4-mini | gpt-4.1-mini |
+|---|---|---|---|---|
+| Passes every rule (after repair) | 100% | 100% | 100% | 100% |
+| Passes on the first try | 83% | **100%** | 94% | 89% |
+| Writes for the right company type | 100% | 100% | 100% | 100% |
+| No helper facts leak at low confidence | 100% | 100% | 100% | 100% |
+| Avg seconds per email | 1.3 | 3.0 | 2.8 | 1.8 |
+
+The tailoring A/B, run 6 times each on gpt-5.5, shows the helper changes the email and the policy gates it. Facts only the helper knows (US and Canada) appeared in **5 of 6** emails at confidence 0.97 and **0 of 6** at 0.2, with the description unchanged.
+
+**Why gpt-5.5 (for tailored emails).** It passed every rule on the first try and stayed furthest from the examples' wording. The cheaper gpt-5.4-mini now handles every email without trusted helper data; see "Cost and model choice". gpt-4.1-mini is faster but copies the example sentences closely ("We help support teams automate...", "policy-aware replies").
+
+**What did not improve (honest notes).**
+- **Repetition across companies went up.** The number of 3-word phrases shared by at least half of the companies rose from 13 to 27. Most come from Alex's examples, which the new prompt uses as the house voice: every email opens "I'm reaching out from Raphie" and asks "Would you be open to...". Each recipient sees only their own email, so this matters less than per-email quality, but it is the next thing I would work on.
+- **The A/B scores the same as the baseline on regions.** The baseline also mentioned the US, through a hard-coded sentence in code ("US state-by-state requirements"). The real differences are elsewhere: the baseline discarded `likelyTicketDrivers` and `complianceThemes`, let a junk 0.71 payload drive its region text, cancelled-and-retried slow helper calls (one run took 24s), and printed failing drafts to stdout.
 
 ## Sample emails (real output)
 
@@ -218,16 +245,6 @@ Best,
 Raphie
 ```
 
-## Web UI
-
-A single form (recipient, company, description, tone) with the result beside it.
-
-- **The company lookup starts when you leave the company field**, and the page shows what was found before you generate ("Company data found (confidence 0.83): the email will be tailored", or "unreliable: writing from your description").
-- **The email is editable.** Edits are checked live with the same `validator.js` the server uses (the page loads it directly), so a salesperson cannot unknowingly add an em dash (macOS turns `--` into one) or a 31-word sentence. Copy still works, labelled "Copy anyway", because the salesperson has the final say. "Undo my edits" restores the original.
-- **Feedback.** Each email can be scored 1 to 5 ("Unusable" to "Send as is") with an optional comment. The page also records whether it was copied and what share of words were changed, which is an honest signal even when nobody leaves a score. `npm run feedback` summarises it: average score, share of 4s and 5s, how often emails are edited, and scores by tone, confidence tier and model.
-- **No hidden state.** The form is the only source of inputs, and stale responses are ignored, so an old button can never act on cleared data. (The first, chat-style version had exactly that bug.)
-- **A stateless API.** `/api/lookup` returns the helper result, and the page passes it back to `/api/generate`, so the helper is called once and nothing is kept in server memory. That is what lets the same code run as serverless functions. The passed-back result goes through the same per-field allow-lists as a live helper response, so a client cannot inject anything a helper response could not.
-
 ## Deploy to Vercel
 
 The repo is ready to deploy as is: static page plus one serverless function per endpoint.
@@ -248,7 +265,19 @@ Every CLI or web run appends one line to `runs.jsonl` (gitignored), with a `runI
 
 All settings are optional except the key (see `.env.example`): `OPENAI_API_KEY`, `OPENAI_MODEL` and `OPENAI_REASONING_EFFORT` (tailored emails: `gpt-5.5`, `low`), `OPENAI_LIGHT_MODEL` and `OPENAI_LIGHT_REASONING_EFFORT` (all other emails: `gpt-5.4-mini`, `none`), `MAX_REPAIRS` (2), `HELPER_BUDGET_MS` (20000), `RUN_LOG` (`runs.jsonl`, or `console` on Vercel), `FEEDBACK_LOG` (`feedback.jsonl`, or `console` on Vercel), `ACCESS_CODE` (unset: no code needed), `PORT` (3000).
 
-## With more time
+## Known gaps
+
+- **The live demo cannot generate emails yet.** The temporary challenge key is deliberately not on a public URL; adding a key (and an access code) in Vercel is a two-minute change.
+- **Feedback and run logs are not permanent on Vercel.** They go to Vercel's Logs tab; keeping them needs a small database.
+- **Repetition across companies went up** (shared 3-word phrases rose from 13 to 27), mostly from the house voice in Alex's examples. Each recipient sees only their own email, but it is the next thing to improve.
+- **Tailoring is good, not perfect.** On the shipped setup, facts only the helper knows reached 4 of 6 high-confidence emails (0 of 6 leaked at low confidence). The cheap model alone managed 1 of 6.
+- **Thresholds come from about 45 live calls**, not from per-field ground truth.
+- **gpt-5.5 showed no prompt cache hits** in these runs, so its input cost is not discounted.
+- **Access control is a single shared code**, with no per-user sign-in, rate limiting or audit trail.
+- **`runs.jsonl` keeps names and emails** with no retention policy, which matters for GDPR in an EU/UK-heavy industry.
+- **Names are taken from the first word after a title**, so names written family-name first get the wrong greeting.
+
+## What's next
 
 - **Reduce cross-company repetition**: vary openers and asks, and tune against the stock-phrase metric with more runs.
 - **Calibrate thresholds per field** against ground truth, since region accuracy and company-type accuracy probably differ.
@@ -257,3 +286,29 @@ All settings are optional except the key (see `.env.example`): `OPENAI_API_KEY`,
 - **Web research** for recent company news as an extra, clearly-sourced fact.
 - **Batch mode** from a CSV, using the same core.
 - **For production use:** measure replies and meetings booked (via the CRM), not just salesperson scores; check a do-not-contact list (existing customers, opt-outs) before writing; follow-up sequences; and a retention policy for `runs.jsonl`, which holds names and emails (GDPR matters in an EU/UK-heavy industry).
+
+## Stack
+
+| Layer | Tech |
+|---|---|
+| Runtime | Node.js 20+, ES modules |
+| AI | OpenAI Responses API with structured outputs; `gpt-5.5` (tailored emails) and `gpt-5.4-mini` (other emails, subject lines) |
+| Server | Node's built-in `http` locally; Vercel serverless functions in production |
+| Web UI | One HTML page, plain JavaScript, no framework |
+| Tests | Node's built-in test runner, no network or key needed |
+| Dependencies | `openai`, `dotenv` |
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `npm start` | CLI: asks the four questions, prints the subject and email |
+| `npm run web` | Web UI at http://localhost:3000 |
+| `npm test` | Unit tests (no network or API key) |
+| `npm run eval` | Live eval against OpenAI with recorded helper responses (`--model`, `--effort`, `--reps`, `--label`) |
+| `npm run compare` | Compare saved eval runs side by side, including cost |
+| `npm run feedback` | Summary of salesperson feedback scores |
+
+## AI usage
+
+AI coding assistants were used throughout: for implementation, code review, and running and analysing the evals. The product decisions (CLI to chat to form, what to measure, the confidence thresholds, routing models by need) and the scope trade-offs are mine.
