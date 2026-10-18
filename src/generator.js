@@ -18,29 +18,43 @@ import { validateEmail } from './validator.js';
 // Reasoning models (gpt-5, o-series) take a reasoning effort instead of a temperature.
 const isReasoningModel = (model) => /^(gpt-5|o\d)/.test(model);
 
-async function complete(client, model, input) {
+async function complete(client, model, input, effort) {
   const request = {
     model,
+    // Static instructions first, data last: OpenAI caches the repeated prefix,
+    // and the cache key keeps every request on the same cache.
     instructions: SYSTEM_PROMPT,
     input,
+    prompt_cache_key: 'raphie-outreach',
     text: { format: { type: 'json_schema', name: 'outreach_email', schema: EMAIL_SCHEMA, strict: true } },
-    ...(isReasoningModel(model) ? { reasoning: { effort: 'low' } } : { temperature: 0.7 }),
+    ...(isReasoningModel(model) ? { reasoning: { effort } } : { temperature: 0.7 }),
   };
   const res = await client.responses.create(request);
   const text = res.output_text;
   try {
-    return { text, json: JSON.parse(text) };
+    return { text, json: JSON.parse(text), usage: res.usage };
   } catch {
     throw new Error(`model returned invalid JSON: ${text.slice(0, 200)}`);
   }
 }
 
-export async function generateEmail({ client, model, input, assessment, maxRepairs = 2, log = () => {} }) {
+// Token usage summed over the first draft and any repairs.
+function addUsage(total, usage = {}) {
+  total.input += usage.input_tokens ?? 0;
+  total.cachedInput += usage.input_tokens_details?.cached_tokens ?? 0;
+  total.output += usage.output_tokens ?? 0;
+  total.reasoning += usage.output_tokens_details?.reasoning_tokens ?? 0;
+}
+
+export async function generateEmail({ client, model, input, assessment, maxRepairs = 2, reasoningEffort = 'low', log = () => {} }) {
   const messages = [{ role: 'user', content: buildUserMessage(input, assessment) }];
   const required = { recipientName: input.recipientName, companyName: input.companyName };
+  const usage = { input: 0, cachedInput: 0, output: 0, reasoning: 0, calls: 0 };
 
   for (let attempt = 1; ; attempt++) {
-    const { text, json } = await complete(client, model, messages);
+    const { text, json, usage: callUsage } = await complete(client, model, messages, reasoningEffort);
+    usage.calls += 1;
+    addUsage(usage, callUsage);
     const paragraphs = json.paragraphs.map((p) => {
       const { text: clean, fixes } = sanitize(p);
       if (fixes.length) log(`sanitizer: ${fixes.join(', ')}`);
@@ -57,6 +71,7 @@ export async function generateEmail({ client, model, input, assessment, maxRepai
       stats: report.stats,
       accountType: json.accountType,
       helperFactsUsed: json.helperFactsUsed,
+      usage,
     };
 
     if (report.ok) {

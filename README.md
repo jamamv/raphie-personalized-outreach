@@ -119,7 +119,7 @@ Structural problems go back to the model with the offending sentences quoted, at
 - **"Beyond the description" is made explicit.** Code works out which helper facts the salesperson did not already mention (`notInDescription`), and the prompt asks the model to build at least one point on the most specific of them.
 - **Tone has rules plus a full example.** Direct leads with who we are and asks for a specific slot. Warm opens with one friendly line and makes a soft ask with no time slot. Sign-offs follow the brief's examples.
 - **Structured output.** The model returns `{accountType, helperFactsUsed, paragraphs}`. Code adds "Hi {first name}," and the sign-off, so those can never be wrong, and the chosen company type is visible for checking.
-- **Model.** `gpt-5.5` with low reasoning effort, chosen by the eval below. Override with `OPENAI_MODEL` or `--model`.
+- **Model.** Routed by confidence tier: `gpt-5.5` with low reasoning when there are trusted helper facts, `gpt-5.4-mini` without reasoning otherwise. See "Cost and model choice".
 
 ## Evaluation
 
@@ -142,6 +142,31 @@ The tailoring A/B, run 6 times each on gpt-5.5, shows the helper changes the ema
 **What did not improve (honest notes).**
 - **Repetition across companies went up.** The number of 3-word phrases shared by at least half of the companies rose from 13 to 27. Most come from Alex's examples, which the new prompt uses as the house voice: every email opens "I'm reaching out from Raphie" and asks "Would you be open to...". Each recipient sees only their own email, so this matters less than per-email quality, but it is the next thing I would work on.
 - **The A/B scores the same as the baseline on regions.** The baseline also mentioned the US, through a hard-coded sentence in code ("US state-by-state requirements"). The real differences are elsewhere: the baseline discarded `likelyTicketDrivers` and `complianceThemes`, let a junk 0.71 payload drive its region text, cancelled-and-retried slow helper calls (one run took 24s), and printed failing drafts to stdout.
+
+## Cost and model choice
+
+Every eval run records real token usage (input, cached input, output, reasoning) and prices it with OpenAI's published rates (`scripts/prices.js`). Same 9 scenarios, 2 runs each:
+
+| Setup | Rules pass | First try | Tokens in/out | $ per 1,000 emails | Seconds | Verdict |
+|---|---|---|---|---|---|---|
+| gpt-5.5, reasoning low | 100% | 100% | 1771/196 | $14.74 | 3.4 | Best tailoring (5/6 in the A/B) |
+| gpt-5.5, reasoning off | 100% | 100% | 1771/141 | $13.08 | 2.8 | Tailoring drops to 3/6 |
+| gpt-5.4-mini, reasoning off | 100% | 89% | 1976/162 | $1.06 | 1.5 | Good writing, rarely uses helper-only facts (1/6) |
+| gpt-4o | 100% | 78% | 2196/166 | $5.39 | 2.0 | Copies the examples most |
+| gpt-4.1-mini | 100% | 83% | 2366/195 | $0.80 | 2.0 | Copies the examples closely |
+| gpt-5.4-nano, reasoning off | 100% | 61% | 2534/218 | $0.78 | 2.6 | Awkward phrasing, overclaims |
+| gpt-4o-mini | 100% | 72% | 2331/172 | $0.33 | 2.8 | Reads as AI ("is crucial", "navigates a complex landscape") |
+| **Routed (default)** | **100%** | **89%** | **1988/201** | **$11.54** | **3.1** | **Tailoring kept (4/6), 22% cheaper** |
+
+What the numbers say:
+- **The eval itself costs no model tokens.** Every check is deterministic code, so tokens are only spent on writing emails.
+- **Rule compliance does not depend on the model.** Code enforces it; weaker models just need more repair calls, which costs input tokens.
+- **Input is about 90% of the tokens**, mostly the fixed instructions. They come first in every request with a `prompt_cache_key`, so OpenAI's prompt cache serves them: 85 to 88% of input tokens were cached on gpt-5.4-mini. (gpt-5.5 showed no cache hits in these runs.)
+- **Reasoning only pays off when there are trusted helper facts to weave in.** It took tailoring from 3/6 to 5/6 on gpt-5.5 and added nothing when writing from the description alone.
+
+So the default **routes by confidence tier**: emails with trusted helper data (the tailored tier) use gpt-5.5 with low reasoning; everything else (generic, ignored, helper down) uses gpt-5.4-mini with reasoning off, about 12 times cheaper per email. Override with `OPENAI_MODEL`, `OPENAI_LIGHT_MODEL` and their `_REASONING_EFFORT` variables, or `--model` to force one model. At $0.01 per email, cost is not what limits this tool, but the routing keeps spend tied to where it changes the output.
+
+**Next step with more time:** move the "which helper fact to use" decision from the model into code (pick the most specific fact deterministically and pass it as a must-mention). Then the cheap model would only need to follow an instruction, not make a judgement, and could likely handle the tailored tier too.
 
 ## Sample emails (real output)
 

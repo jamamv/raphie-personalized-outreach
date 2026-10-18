@@ -37,14 +37,24 @@ const getClient = () => (client ??= new OpenAI({ apiKey: config.openaiApiKey, ti
  * @param lookup promise from startLookup (or a ready helper result)
  * @returns everything the CLI / UI need to show the email and explain it
  */
-export async function createEmail({ input, lookup, model = config.model, log = () => {}, record = true }) {
+/** Picks the model for this email: the larger one only when there are trusted helper facts to use. */
+export function routeModel(tier) {
+  return tier === 'tailored'
+    ? { model: config.model, reasoningEffort: config.reasoningEffort }
+    : { model: config.lightModel, reasoningEffort: config.lightReasoningEffort };
+}
+
+export async function createEmail({ input, lookup, model, reasoningEffort, log = () => {}, record = true }) {
   const started = Date.now();
   const helper = await lookup;
   const assessment = assessHelper(helper);
   const explanation = describeAssessment(assessment);
   explanation.forEach((line) => log(line));
+  // An explicit model (CLI --model, eval --model) overrides the routing.
+  const route = model ? { model, reasoningEffort: reasoningEffort ?? config.reasoningEffort } : routeModel(assessment.tier);
+  ({ model, reasoningEffort } = route);
 
-  const result = await generateEmail({ client: getClient(), model, input, assessment, maxRepairs: config.maxRepairs, log });
+  const result = await generateEmail({ client: getClient(), model, input, assessment, maxRepairs: config.maxRepairs, reasoningEffort, log });
   const run = {
     ...result,
     runId: randomUUID(),
@@ -66,6 +76,8 @@ export async function createEmail({ input, lookup, model = config.model, log = (
       confidence: assessment.confidence,
       fieldReport: assessment.report,
       model,
+      reasoningEffort,
+      usage: result.usage,
       accountType: result.accountType,
       helperFactsUsed: result.helperFactsUsed,
       ok: result.ok,

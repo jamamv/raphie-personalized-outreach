@@ -18,10 +18,13 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { generate } from './eval-adapter.js';
 import { BUZZWORDS } from '../src/validator.js';
+import { config } from '../src/config.js';
+import { costOf } from './prices.js';
 
 const { values: args } = parseArgs({
   options: {
     model: { type: 'string' },
+    effort: { type: 'string' },
     reps: { type: 'string', default: '1' },
     label: { type: 'string', default: 'run' },
     only: { type: 'string' },
@@ -54,7 +57,7 @@ async function runOne(sc, rep) {
   const helper = sc.helper ? { ...fixtures[sc.helper], ...sc.override } : null;
   const started = Date.now();
   try {
-    const r = await generate({ input: sc.input, helper, model: args.model });
+    const r = await generate({ input: sc.input, helper, model: args.model, effort: args.effort });
     // Strip the user's own description so echoing it back does not count as copying.
     const reference = r.promptText.split(sc.input.description).join(' ');
     return {
@@ -73,6 +76,7 @@ async function runOne(sc, rep) {
       copied: copiedPhrases(r.email, reference),
       buzz: buzzwordsIn(r.email),
       words: words(r.email).length,
+      usage: r.usage,
       email: r.email,
     };
   } catch (e) {
@@ -119,10 +123,24 @@ function stockPhrases(rows, n = 3) {
     .map(([g, ids]) => `${g} (${ids.size}/${companies})`);
 }
 
+function tokenSummary(rows) {
+  const avg = (f) => rows.reduce((n, r) => n + f(r.usage ?? {}), 0) / (rows.length || 1);
+  const cost = avg((u) => costOf(u.model, u) ?? 0);
+  return {
+    effort: args.effort ?? (args.model ? 'default' : 'routed'),
+    avgCallsPerEmail: avg((u) => u.calls ?? 0).toFixed(2),
+    avgInputTokens: Math.round(avg((u) => u.input ?? 0)),
+    cachedInputShare: `${Math.round((100 * avg((u) => u.cachedInput ?? 0)) / (avg((u) => u.input ?? 0) || 1))}%`,
+    avgOutputTokens: Math.round(avg((u) => u.output ?? 0)),
+    avgReasoningTokens: Math.round(avg((u) => u.reasoning ?? 0)),
+    costPer1000Emails: `$${(cost * 1000).toFixed(2)}`,
+  };
+}
+
 const pct = (xs) => (xs.length ? `${Math.round((100 * xs.filter(Boolean).length) / xs.length)}%` : '-');
 const summary = {
   label: args.label,
-  model: args.model ?? 'default',
+  model: args.model ?? 'routed',
   runs: results.length,
   errors: results.length - done.length,
   rulesPass: pct(done.map((r) => r.ok)),
@@ -132,6 +150,7 @@ const summary = {
   avgCopiedPhrases: (done.reduce((n, r) => n + r.copied.length, 0) / (done.length || 1)).toFixed(1),
   avgBuzzwords: (done.reduce((n, r) => n + r.buzz.length, 0) / (done.length || 1)).toFixed(1),
   stockPhrases: stockPhrases(done),
+  ...tokenSummary(done),
   avgSeconds: (done.reduce((n, r) => n + r.ms, 0) / (done.length || 1) / 1000).toFixed(1),
 };
 console.dir(summary, { depth: null, maxArrayLength: null });

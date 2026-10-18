@@ -4,9 +4,9 @@ import { createEmail } from '../src/core.js';
 import { assessHelper } from '../src/insights.js';
 import { SYSTEM_PROMPT, buildUserMessage } from '../src/prompt.js';
 
-export async function generate({ input, helper, model }) {
+export async function generate({ input, helper, model, effort }) {
   const lookup = helper ? { ok: true, data: helper } : { ok: false, reason: 'helper down (simulated)' };
-  const r = await createEmail({ input, lookup, model, record: false });
+  const r = await createEmail({ input, lookup, model, reasoningEffort: effort, record: false });
   return {
     email: r.email,
     ok: r.ok,
@@ -14,6 +14,7 @@ export async function generate({ input, helper, model }) {
     violations: r.violations.map((v) => v.rule),
     tier: r.tier,
     accountType: r.accountType,
+    usage: { ...r.usage, model: r.model },
     promptText: `${SYSTEM_PROMPT}\n${buildUserMessage(input, assessHelper(lookup))}`,
   };
 }

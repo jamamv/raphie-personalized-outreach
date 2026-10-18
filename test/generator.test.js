@@ -87,3 +87,10 @@ test('notInDescription keeps only helper facts the salesperson did not already m
   const desc = 'A sportsbook operator with high withdrawal volume and frequent KYC tickets';
   assert.deepEqual(notInDescription(['withdrawals', 'KYC', 'geolocation', 'bet settlement'], desc), ['geolocation', 'bet settlement']);
 });
+
+test('routing: the larger model with reasoning only when trusted helper facts exist', async () => {
+  const { routeModel } = await import('../src/core.js');
+  const { config } = await import('../src/config.js');
+  assert.deepEqual(routeModel('tailored'), { model: config.model, reasoningEffort: config.reasoningEffort });
+  for (const tier of ['generic', 'ignored', 'none']) assert.equal(routeModel(tier).model, config.lightModel);
+});

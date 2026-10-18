@@ -13,7 +13,7 @@ Prompts for any value not passed as a flag.
   --company <company>    Company name, e.g. "Big Bet Sports"
   --description <text>   Short description of the company
   --tone <direct|warm>   Email tone
-  --model <model>        OpenAI model (default: ${config.model})
+  --model <model>        Use this OpenAI model for every email (default: routed, ${config.model} with helper data, ${config.lightModel} without)
   -v, --verbose          Show retries, repairs, and a rejected draft if there is one
   --dry-run              Print the prompt that would be sent, without calling OpenAI
   -h, --help             Show this help
@@ -64,7 +64,7 @@ export async function run(argv) {
         company: { type: 'string' },
         description: { type: 'string' },
         tone: { type: 'string' },
-        model: { type: 'string', default: config.model },
+        model: { type: 'string' },
         verbose: { type: 'boolean', short: 'v', default: false },
         'dry-run': { type: 'boolean', default: false },
         help: { type: 'boolean', short: 'h', default: false },
@@ -147,6 +147,6 @@ export async function run(argv) {
   err('');
   console.log(result.email);
   result.warnings.forEach((w) => err(`Note: ${w.message}`));
-  verbose(`${result.attempts} attempt(s), ${result.stats.words} words, longest sentence ${result.stats.longestSentence} words, ${(result.ms / 1000).toFixed(1)}s, ${result.model}`);
+  verbose(`${result.attempts} attempt(s), ${result.stats.words} words, longest sentence ${result.stats.longestSentence} words, ${(result.ms / 1000).toFixed(1)}s, ${result.model}, ${result.usage.input} in / ${result.usage.output} out tokens`);
   return 0;
 }
