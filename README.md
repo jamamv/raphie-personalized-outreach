@@ -404,6 +404,26 @@ All settings are optional except the key (see `.env.example`): `OPENAI_API_KEY`,
 - **Batch mode** from a CSV, using the same core.
 - **For production use:** measure replies and meetings booked (via the CRM), not just salesperson scores; check a do-not-contact list (existing customers, opt-outs) before writing; follow-up sequences; and a retention policy for `runs.jsonl`, which holds names and emails (GDPR matters in an EU/UK-heavy industry).
 
+### Roadmap: from drafting emails to sending them
+
+Today a person reviews every email before it goes out. The natural next step is to let the tool send, but only as fast as the evidence allows. Each stage is unlocked by data from the previous one, not by a date.
+
+| Stage | What it adds | Unlocked when |
+|---|---|---|
+| **1. Drafting (today)** | The salesperson generates, edits, copies and rates each email. Feedback and edit share are recorded. | Done |
+| **2. One-click send** | A **Send** button that sends through the salesperson's own Gmail or Outlook (OAuth connector), from their address, with the edited text. Sent emails are logged against the run. | Salespeople rate most emails 4 or 5 and rarely need heavy edits |
+| **3. Daily drafts from the CRM** | A scheduled job (for example every morning) reads new leads that salespeople have added to the CRM, generates drafts, and puts them in an **approval queue**: one click to approve, edit or reject. | The golden set (below) passes consistently and approvals rarely need edits |
+| **4. Automatic sending for the safest cases** | Emails that pass every check, come from tailored or description-only data with high confidence, and fit a segment with a proven track record are sent automatically. Everything else stays in the approval queue. | Approved-without-edit rate stays above an agreed bar, and reply rates on automatic sends match human-reviewed ones |
+
+**The golden set.** Turn real feedback into a growing eval: emails salespeople rated 5 and sent unchanged become "good" examples, and low-rated or heavily edited ones become test cases with notes on what was wrong. The eval in `scripts/eval.js` already runs fixed scenarios; the golden set extends it with real cases, and every prompt or model change must pass it before release.
+
+**Guardrails that come with sending**, whichever stage:
+- **Do-not-contact checks** against the CRM before anything is drafted: existing customers, open deals, people who opted out.
+- **An opt-out line and suppression list**, plus GDPR handling for EU/UK recipients.
+- **Sending limits** per mailbox and per day, so deliverability and sender reputation are protected.
+- **Measure outcomes, not just scores:** replies and meetings booked per segment, tone and model, fed back into the thresholds.
+- **A kill switch** and an audit trail of what was sent, by whom or by which rule, and from which prompt version.
+
 ## Stack
 
 | Layer | Tech |
