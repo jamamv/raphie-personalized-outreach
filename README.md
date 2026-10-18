@@ -14,13 +14,13 @@ cp .env.example .env          # add your OPENAI_API_KEY
 npm start                     # CLI: asks the four questions
 npm run web                   # web UI at http://localhost:3000
 npm run feedback              # how salespeople rated the emails
-npm test                      # 44 unit tests, no network or key needed
+npm test                      # 53 unit tests, no network or key needed
 npm run eval -- --reps 2      # live eval against OpenAI (see Evaluation)
 ```
 
 CLI flags skip the prompts: `--name`, `--company`, `--description`, `--tone direct|warm`, `--model`, `-v` (verbose), `--dry-run` (print the exact prompt without calling OpenAI).
 
-The email goes to **stdout only if it passed every rule**. Everything else (questions, the helper report, warnings) goes to stderr, so `npm start > email.txt` gives a clean file. Exit codes: `0` ok, `1` error, `2` no draft passed the rules (nothing is printed as an email).
+The subject line and email go to **stdout only if the email passed every rule**. Everything else (questions, the helper report, warnings) goes to stderr, so `npm start > email.txt` gives a clean file. Exit codes: `0` ok, `1` error, `2` no draft passed the rules (nothing is printed as an email).
 
 ## How it works
 
@@ -42,6 +42,7 @@ prompts/system.md ──► OpenAI (structured output) ──► sanitize ──
 | `src/helper.js` | Helper endpoint client. Retry policy based on measuring the endpoint. Never throws. |
 | `src/insights.js` | Confidence tiers, per-field allow-lists, and the "why" report. |
 | `prompts/system.md` | Every instruction the model gets: Raphie's offer, required content, company-type cheat sheet, writing rules, tone rules with examples. |
+| `src/subject.js`, `prompts/subject.md` | Subject line: a small separate call on the light model, rule-checked, with a fallback. |
 | `src/prompt.js` | Loads the instructions; builds the `<data>` block; adds greeting and sign-off. |
 | `src/generator.js` | OpenAI Responses API call, sanitize, validate, repair loop. |
 | `src/validator.js`, `src/sanitize.js` | The rules, in code. |
@@ -106,7 +107,7 @@ The model is asked to follow the rules, but **code decides**.
 | At most one `!` | Fixed in code (extras become periods). |
 | No two consecutive sentences starting with the same word | Checked; the model must rewrite. Greeting and sign-off count as sentences (the stricter reading). |
 | No sentence over 30 words | Checked; the model must rewrite. Words are whitespace-separated tokens, so "15-minute" is one word. The prompt asks for 25 to leave headroom. |
-| Recipient's name, company name, a call request, "Raphie" | Checked. |
+| Recipient's name, company name, a call request, "Raphie" | Checked. The name check works in any alphabet (José, Łukasz) and skips titles ("Dr. Jane Doe" becomes "Hi Jane,"). |
 
 **Subject lines** are not in the brief, but every real cold email needs one. After an email passes, a small separate call on the light model (`src/subject.js`, `prompts/subject.md`) writes a 2 to 6 word subject from the finished email, so it always matches the body. Code checks it (`checkSubject` in `src/validator.js`): 2 to 8 words, at most 60 characters, and no exclamation marks, dashes, "fantastic", emojis, fake "Re:"/"Fwd:" or shouting in capitals. A failing subject is retried once with the problems listed, then replaced by a plain fallback, so the subject can never block the email. It costs about $0.20 per 1,000 emails, and in the web UI it is editable, checked live, copyable on its own, and can be rerolled with "New subject" without rewriting the email.
 
@@ -241,7 +242,7 @@ On Vercel the disk is temporary, so `runs.jsonl` and `feedback.jsonl` are writte
 
 ## Run log
 
-Every CLI or web run appends one line to `runs.jsonl` (gitignored), with a `runId` that feedback in `feedback.jsonl` refers to: inputs, the raw helper response, tier, field report, model, company type, whether it passed, repairs, warnings, the email and timing. Use it to compare runs (same company, other tone or model) and to review real confidence scores over time. Set `RUN_LOG=off` to disable it.
+Every CLI or web run appends one line to `runs.jsonl` (gitignored), with a `runId` that feedback in `feedback.jsonl` refers to: inputs, the raw helper response, tier, field report, model, token usage, company type, whether it passed, repairs, warnings, the subject, the email and timing. Use it to compare runs (same company, other tone or model) and to review real confidence scores over time. Set `RUN_LOG=off` to disable it.
 
 ## Configuration
 
@@ -255,3 +256,4 @@ All settings are optional except the key (see `.env.example`): `OPENAI_API_KEY`,
 - **An LLM judge** for "sounds human" and relevance, alongside the mechanical checks.
 - **Web research** for recent company news as an extra, clearly-sourced fact.
 - **Batch mode** from a CSV, using the same core.
+- **For production use:** measure replies and meetings booked (via the CRM), not just salesperson scores; check a do-not-contact list (existing customers, opt-outs) before writing; follow-up sequences; and a retention policy for `runs.jsonl`, which holds names and emails (GDPR matters in an EU/UK-heavy industry).
