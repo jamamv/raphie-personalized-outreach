@@ -25,17 +25,27 @@ Exit codes: 0 ok, 1 error, 2 no email passed the rules.`;
 // Prompts and diagnostics go to stderr so stdout contains only the email.
 const err = (msg = '') => process.stderr.write(`${msg}\n`);
 
-async function askRequired(rl, question) {
+// Reads answers through the line iterator, which buffers input, so both typed
+// and piped answers work (rl.question() drops lines that arrive early).
+async function nextLine(lines, question) {
+  process.stderr.write(question);
+  const { value, done } = await lines.next();
+  if (done) throw new Error('input ended before every question was answered');
+  if (!process.stdin.isTTY) err(value);
+  return value;
+}
+
+async function askRequired(lines, question) {
   for (;;) {
-    const answer = (await rl.question(question)).trim();
+    const answer = (await nextLine(lines, question)).trim();
     if (answer) return answer;
     err('  This field is required.');
   }
 }
 
-async function askTone(rl) {
+async function askTone(lines) {
   for (;;) {
-    const answer = (await rl.question('Tone, "direct" or "warm" [direct]: ')).trim().toLowerCase();
+    const answer = (await nextLine(lines, 'Tone, "direct" or "warm" [direct]: ')).trim().toLowerCase();
     if (!answer || answer === 'd') return 'direct';
     if (answer === 'w') return 'warm';
     if (TONES.includes(answer)) return answer;
@@ -82,16 +92,20 @@ export async function run(argv) {
     err('\nCancelled.');
     process.exit(130);
   });
+  const lines = rl?.[Symbol.asyncIterator]();
 
   const input = {};
   let lookup;
   try {
-    input.recipientName = values.name?.trim() || (await askRequired(rl, "Recipient's name: "));
-    input.companyName = values.company?.trim() || (await askRequired(rl, 'Company name: '));
+    input.recipientName = values.name?.trim() || (await askRequired(lines, "Recipient's name: "));
+    input.companyName = values.company?.trim() || (await askRequired(lines, 'Company name: '));
     // Start the slow helper lookup now, so it runs while the user types the rest.
     lookup = startLookup(input.companyName, verbose);
-    input.description = values.description?.trim() || (await askRequired(rl, 'Short company description: '));
-    input.tone = values.tone?.trim().toLowerCase() || (await askTone(rl));
+    input.description = values.description?.trim() || (await askRequired(lines, 'Short company description: '));
+    input.tone = values.tone?.trim().toLowerCase() || (await askTone(lines));
+  } catch (e) {
+    err(`\n${e.message}.`);
+    return 1;
   } finally {
     rl?.close();
   }
