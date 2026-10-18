@@ -1,0 +1,22 @@
+{
+  "name": "raphie-outreach-cli",
+  "version": "1.0.0",
+  "description": "CLI that generates constraint-checked cold outreach emails for Raphie using OpenAI and a go-to-market helper endpoint",
+  "type": "module",
+  "bin": {
+    "raphie-outreach": "./bin/raphie-outreach.js"
+  },
+  "scripts": {
+    "start": "node bin/raphie-outreach.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=18.18"
+  },
+  "keywords": ["cli", "openai", "outreach"],
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^18.0.8",
+    "openai": "^7.36.0"
+  }
+}
