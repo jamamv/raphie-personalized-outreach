@@ -52,17 +52,33 @@ The subject line and email go to **stdout only if the email passed every rule**.
 
 ## How it works
 
-```
-company name typed ──► helper lookup starts immediately (overlaps with typing)
-                              │  retry fast 503s, wait on slow answers, 20s budget
-                              ▼
-                       insights.js: confidence tier + per-field checks + report
-                              ▼
-prompts/system.md ──► OpenAI (structured output) ──► sanitize ──► validate
- (instructions)          ▲                                         │ fails?
- <data> block            └──── exact problems sent back (max 2) ◄──┘
- (facts, as data)                              ▼
-                       greeting + sign-off added by code ──► passing email only
+```mermaid
+flowchart TD
+    IN(["Salesperson enters name, company, description, tone"]):::io
+    IN --> LOOK["Company lookup<br/>starts as soon as the company is entered"]
+    LOOK -.->|"503, slow or down"| RETRY["Retry fast failures, wait on slow ones<br/>20s budget, never blocks the email"]
+    RETRY -.-> CHECK
+    LOOK --> CHECK["Check every field on its own<br/>junk values dropped and reported"]
+    CHECK --> TIER{"Confidence"}
+    TIER -->|"below 0.40 or no data"| IGN["Ignored<br/>description only"]
+    TIER -->|"0.40 to 0.65"| GEN["Generic<br/>broad fields, hedged wording"]
+    TIER -->|"0.65 and above"| TAI["Tailored<br/>all trusted facts"]
+    IGN --> MINI["gpt-5.4-mini<br/>no reasoning"]:::model
+    GEN --> MINI
+    TAI --> BIG["gpt-5.5<br/>low reasoning"]:::model
+    MINI --> DRAFT["Draft email as structured JSON<br/>greeting and sign-off added by code"]
+    BIG --> DRAFT
+    DRAFT --> FIX["Auto-fix hard bans<br/>em dash, fantastic, extra !, Furthermore"]
+    FIX --> RULES{"Checker<br/>6 writing rules + name,<br/>company, call question"}
+    RULES -->|"fails: exact problems sent back, max 2 times"| DRAFT
+    RULES -->|"still failing"| NONE(["Nothing shown<br/>problems listed instead"]):::bad
+    RULES -->|"passes"| SUBJ["Subject line<br/>gpt-5.4-mini, rule-checked, fallback"]
+    SUBJ --> OUT(["Email shown: edit with live checks, copy, rate 1 to 5"]):::good
+
+    classDef io fill:#eef2ff,stroke:#6366f1,color:#1e1b4b
+    classDef model fill:#fef3c7,stroke:#d97706,color:#451a03
+    classDef good fill:#dcfce7,stroke:#16a34a,color:#052e16
+    classDef bad fill:#fee2e2,stroke:#dc2626,color:#450a0a
 ```
 
 | File | Job |
@@ -79,6 +95,71 @@ prompts/system.md ──► OpenAI (structured output) ──► sanitize ──
 | `api/`, `vercel.json`, `scripts/build-web.js` | Vercel deployment: one serverless function per endpoint, plus a build step that copies the page into `public/`. |
 | `src/feedback.js` | Validates salesperson scores and summarises them (`npm run feedback`). |
 | `scripts/eval.js`, `scripts/compare.js` | Live evaluation and before/after comparison. |
+
+## Error scenarios
+
+What happens when something goes wrong, and what the user sees. Messages are quoted from the code.
+
+### The salesperson's input
+
+| Scenario | What happens |
+|---|---|
+| A field is left empty | CLI asks again: *"This field is required."* The web Generate button stays disabled (*"Please fill in every field."*). The API returns 400: *"recipientName is required"*. |
+| Tone is not direct or warm | CLI asks again: *"Please enter "direct" or "warm"."* (Enter alone means direct; `d` and `w` work.) API: 400. |
+| Text too long (name 100, company 120, description 600 characters) | 400: *"description is longer than 600 characters"*. |
+| Name typed with a title or in lowercase | Handled, not an error: "Dr. Jane Doe" and "jane doe" both become "Hi Jane,". Names in any alphabet work (José, Łukasz). |
+| No OpenAI key | CLI and web server stop at start: *"OPENAI_API_KEY is not set. Copy .env.example to .env and add your key."* |
+| Wrong or missing access code (when `ACCESS_CODE` is set) | 401. The page shows an access code field: *"That access code is not right."* |
+| Malformed API request (not JSON, or JSON that is not an object) | Always a 400 (*"Invalid JSON"*, or the missing-field message), never a crash. |
+
+### The company lookup
+
+The lookup improves the email but can never block it.
+
+| Scenario | What happens |
+|---|---|
+| 503, 429 or another 5xx | Retried quickly, up to 4 attempts. |
+| Slow answer or a hang (including a reply that stalls halfway) | Waited on for up to 15s, never cancelled and retried. Overall budget 20s. |
+| Every attempt fails | The email is written from the description. The page shows *"Company lookup unavailable: writing from your description."* |
+| Confidence below 0.40, or missing | Helper ignored: *"Company data is unreliable (confidence 0.22): writing from your description."* |
+| A junk field, even at high confidence (`"error: could not classify company"`, `"n/a"`, `"INTL"`) | That field alone is dropped, and "Why this email" shows it with a ✗ and the reason. Other valid fields are still used. |
+| Helper contradicts the description | The description wins. The model reports the company type it chose, which is visible under the email. |
+
+### The model's draft
+
+Every draft goes through the checker. Hard bans are fixed in code without another model call. Everything else goes back to the model with the exact problem, at most twice.
+
+| Problem in the draft | Message sent back to the model | Fixed by |
+|---|---|---|
+| Em dash, or spaced ` – ` / ` -- ` | *"Contains an em dash. Use a comma or a period instead."* | Code (replaced with a comma) |
+| Sentence starts with Furthermore / Additionally | *"Sentence starts with "additionally": ..."* | Code (word removed) |
+| The word "fantastic" | *"Uses the word "fantastic"."* | Code (becomes "great") |
+| More than one `!` | *"Has 2 exclamation marks (max 1)."* | Code (extras become periods) |
+| Two sentences in a row start with the same word | *"Consecutive sentences both start with "we": "..." / "..."* | Model rewrite |
+| A sentence over 30 words | *"Sentence has 34 words (max 30): "..."* | Model rewrite |
+| **Recipient's name missing** (the first name typed, after titles) | *"Does not address the recipient by name ("Jane")."* | Model rewrite (the greeting is built by code, so in practice this cannot happen) |
+| **Company name missing** (as typed, any case) | *"Does not mention the company name "Riverline Sportsbook"."* | Model rewrite |
+| **No call request**: no `?`, or none of call / chat / conversation / meet / meeting / talk | *"Missing a question suggesting a short call or meeting."* | Model rewrite |
+| "Raphie" missing | *"Does not mention Raphie."* | Model rewrite (the sign-off always includes it) |
+| A buzzword (leverage, seamless, unlock...) | Not sent back: shown as a note, since it is style guidance, not one of the six rules | Salesperson's call |
+| **Still failing after 2 repairs** | Nothing is shown as an email. CLI: *"No email passed every rule after 3 attempts:"* plus the problems, exit code 2 (the draft only with `-v`). Web: *"No version passed every writing rule after 3 attempts, so nothing is shown."* with a Try again button. | |
+| OpenAI error or timeout | The SDK retries twice (60s timeout). CLI: *"OpenAI request failed: ..."* with exit code 1. Web: *"Sorry, that failed: ..."* with Try again. | |
+
+### The subject line
+
+| Scenario | What happens |
+|---|---|
+| Subject breaks a rule (too long, `!`, dash, emoji, "Re:", capitals) | Sent back once with the problems, e.g. *"Subject shouts in capitals ("FREE")."* |
+| Still failing, or the call errors | Plain fallback: "Support at {company}". The subject never blocks the email. |
+| "New subject" fails in the web UI | *"Could not get a new subject: ..."*. The current subject is kept. |
+
+### The salesperson's edits (web UI)
+
+| Scenario | What happens |
+|---|---|
+| An edit breaks a rule (adds an em dash, a long sentence, removes the name) | Flagged live with the same checker: a red *"✗ 2 rule problems"* badge with the list. Copy becomes **"Copy anyway"**, since the salesperson has the final say. "Undo my edits" restores the original. |
+| A subject edit breaks a rule | The problem appears under the subject as you type. |
+| Clicking an old button after Clear | Ignored. The form is the only source of inputs, and stale responses are dropped. |
 
 ## Key decisions
 
