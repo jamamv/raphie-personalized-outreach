@@ -417,8 +417,18 @@ Today a person reviews every email before it goes out. The natural next step is 
 
 **The golden set.** Turn real feedback into a growing eval: emails salespeople rated 5 and sent unchanged become "good" examples, and low-rated or heavily edited ones become test cases with notes on what was wrong. The eval in `scripts/eval.js` already runs fixed scenarios; the golden set extends it with real cases, and every prompt or model change must pass it before release.
 
+**Follow-up sequences.** Most replies to cold outreach come after the first email, not from it. Add 2 or 3 short follow-ups a few days apart, each one adding something new (a different ticket type, a one-line idea) instead of "just bumping this". They go through the same checker, and the sequence stops as soon as the prospect replies, books a call or opts out.
+
+**Do-not-contact checks before anything is written.** Look the company and the person up in the CRM first and stop if they are an existing customer, have an open deal with someone else on the team, or opted out. Emailing a current customer as a cold prospect is the classic embarrassing mistake, and it is cheap to prevent.
+
+**Learn from replies.** Record the outcome of every email sent, linked to its `runId`: replied (positive, neutral or negative), meeting booked, no reply, bounced or opted out. Then analyse what wins:
+- Reply rate by **tone**, **confidence tier**, **company type**, **model** and **which helper facts were used**. `runs.jsonl` already records all of these per email.
+- Reply rate by **subject style**, **email length** and **how much the salesperson edited** before sending.
+- Read the emails that won and lost side by side to find patterns the numbers miss.
+
+The findings feed straight back: winning emails join the golden set, losing patterns become new checks or prompt changes, and the confidence thresholds get tuned against real replies instead of the 45 calls they come from today. That replaces "salespeople liked it" with "prospects answered it".
+
 **Guardrails that come with sending**, whichever stage:
-- **Do-not-contact checks** against the CRM before anything is drafted: existing customers, open deals, people who opted out.
 - **An opt-out line and suppression list**, plus GDPR handling for EU/UK recipients.
 - **Sending limits** per mailbox and per day, so deliverability and sender reputation are protected.
 - **Measure outcomes, not just scores:** replies and meetings booked per segment, tone and model, fed back into the thresholds.
