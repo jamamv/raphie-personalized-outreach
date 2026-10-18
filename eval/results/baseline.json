@@ -5,18 +5,33 @@
     "runs": 18,
     "errors": 0,
     "rulesPass": "100%",
-    "firstTryPass": "94%",
+    "firstTryPass": "83%",
     "typeCorrect": "100%",
-    "tailoringChecks": "67%",
-    "avgCopiedPhrases": "2.5",
-    "avgBuzzwords": "0.0",
-    "avgSeconds": "1.4"
+    "tailoringChecks": "100%",
+    "avgCopiedPhrases": "2.2",
+    "avgBuzzwords": "0.1",
+    "stockPhrases": [
+      "policy consistent replies (8/9)",
+      "to explore how (7/9)",
+      "for sensitive cases (7/9)",
+      "explore how raphie (7/9)",
+      "would you be (6/9)",
+      "you be open (6/9)",
+      "be open to (6/9)",
+      "open to a (6/9)",
+      "call to explore (6/9)",
+      "with raphie we (5/9)",
+      "raphie we automate (5/9)",
+      "we automate support (5/9)",
+      "consistent replies and (5/9)"
+    ],
+    "avgSeconds": "1.3"
   },
   "results": [
     {
       "id": "affiliate-warm",
       "rep": 0,
-      "ms": 1080,
+      "ms": 1153,
       "ok": true,
       "firstTry": true,
       "attempts": 1,
@@ -27,19 +42,17 @@
       "mentionOk": null,
       "absentOk": null,
       "copied": [
-        "many repetitive partner questions about",
-        "repetitive partner questions about tracking",
         "would you be open to",
         "you be open to a"
       ],
       "buzz": [],
-      "words": 100,
-      "email": "Hi Sam,\n\nHope you’re doing well. I’m reaching out from Raphie because affiliate networks like Odds Affiliate Network often handle many repetitive partner questions about tracking discrepancies, commissions, and offer terms. These tickets can slow down your team and impact partner satisfaction.\n\nRaphie automates those common queries while helping your agents respond quickly and accurately to more complex cases. Given your multi-market footprint, we also support consistent replies across languages and rules, keeping handoffs clean and documented.\n\nWould you be open to a brief call to explore how this could ease your support load?\n\nWarm regards,\nRaphie"
+      "words": 105,
+      "email": "Hi Sam,\n\nHope you’re doing well. I’m reaching out from Raphie because affiliate networks like Odds Affiliate Network often get many repeated partner questions about tracking discrepancies, commissions, and offer terms. These tickets can slow down support and delay partner payouts.\n\nRaphie automates those common queries to reduce ticket volume and helps agents respond faster with policy-consistent suggestions, while ensuring smooth handoffs for complex cases. Given your multi-market presence, this can improve response times and partner satisfaction across languages and regulations.\n\nWould you be open to a brief call to explore if this could ease your support workload?\n\nWarm regards,\nRaphie"
     },
     {
       "id": "affiliate-warm",
       "rep": 1,
-      "ms": 1312,
+      "ms": 1130,
       "ok": true,
       "firstTry": true,
       "attempts": 1,
@@ -49,36 +62,19 @@
       "typeOk": true,
       "mentionOk": null,
       "absentOk": null,
-      "copied": [],
-      "buzz": [],
-      "words": 103,
-      "email": "Hi Sam,\n\nHope you’re doing well. I’m reaching out from Raphie because it looks like Odds Affiliate Network handles many partner questions about tracking, commissions, and offer terms. These repetitive tickets can slow down support and delay partner payments.\n\nRaphie automates answers to common queries and suggests policy-compliant replies for agents, helping your team respond faster while keeping sensitive cases clearly escalated. Given your multi-market footprint, this can reduce resolution times and keep partners satisfied across languages and regulations.\n\nWould you be interested in a brief call to explore how this might fit your support setup?\n\nWarm regards,\nRaphie"
-    },
-    {
-      "id": "apexpay-warm-conflict",
-      "rep": 0,
-      "ms": 1908,
-      "ok": true,
-      "firstTry": true,
-      "attempts": 1,
-      "violations": [],
-      "tier": "high",
-      "type": "payments",
-      "typeOk": true,
-      "mentionOk": null,
-      "absentOk": null,
       "copied": [
+        "auditable would you be open",
         "would you be open to",
         "you be open to a"
       ],
       "buzz": [],
-      "words": 117,
-      "email": "Hi Jane,\n\nHope you’re doing well. ApexPay Gaming likely handles many repetitive tickets about payout status, delayed transactions, chargebacks, and fraud review holds from both operators and end users. These time-sensitive questions require quick, clear answers alongside careful escalation for sensitive cases.\n\nRaphie automates these common workflows, reducing ticket volume and helping your team absorb peak spikes without extra headcount. We ensure policy-consistent replies and maintain audit trails for compliance, with smooth handoffs to human agents when needed. This approach fits well with your multi-market, multi-language environment and complex KYC/AML needs.\n\nWould you be open to a brief call to explore how this might help your support team?\n\nWarm regards,\nRaphie"
+      "words": 97,
+      "email": "Hi Sam,\n\nHope you’re doing well. I’m reaching out from Raphie because Odds Affiliate Network likely handles many partner questions about tracking, commissions, and offer terms. These repetitive tickets can slow down response times and affect partner satisfaction.\n\nRaphie automates common inquiries and suggests precise, policy-consistent replies to help your agents resolve complex cases faster. Given your multi-market presence, this can improve accuracy and speed while keeping handoffs to humans clear and auditable.\n\nWould you be open to a brief call to explore if Raphie could ease your support workload?\n\nWarm regards,\nRaphie"
     },
     {
       "id": "apexpay-warm-conflict",
-      "rep": 1,
-      "ms": 1878,
+      "rep": 0,
+      "ms": 1272,
       "ok": true,
       "firstTry": true,
       "attempts": 1,
@@ -94,12 +90,30 @@
       ],
       "buzz": [],
       "words": 110,
-      "email": "Hi Jane,\n\nHope you’re doing well. ApexPay Gaming likely handles many payout status and fraud review tickets, with time-sensitive questions from both operators and end users. These repetitive inquiries can create spikes that are hard to manage without growing support headcount.\n\nRaphie automates routine payout and transaction status updates, while ensuring policy-consistent replies and smooth escalation for chargebacks and fraud holds. Our platform supports multi-market operations and keeps clean audit trails, which is critical given the complexity of KYC and AML requirements.\n\nWould you be open to a brief call to explore how Raphie might help reduce ticket volume and improve response times?\n\nWarm regards,\nRaphie"
+      "email": "Hi Jane,\n\nHope you’re doing well. ApexPay Gaming handles a high volume of payout status and fraud review tickets from both operators and end users, which often include time-sensitive questions about transaction delays and chargebacks. These repetitive inquiries can strain support teams, especially during peak times.\n\nRaphie automates responses to common payout and settlement status questions while keeping fraud reviews and disputes carefully escalated with full audit trails. This helps reduce ticket volume and resolution times, supporting your multi-market, multi-language needs without adding headcount.\n\nWould you be open to a brief call to explore how this could fit ApexPay Gaming’s support operations?\n\nWarm regards,\nRaphie"
+    },
+    {
+      "id": "apexpay-warm-conflict",
+      "rep": 1,
+      "ms": 1282,
+      "ok": true,
+      "firstTry": true,
+      "attempts": 1,
+      "violations": [],
+      "tier": "high",
+      "type": "payments",
+      "typeOk": true,
+      "mentionOk": null,
+      "absentOk": null,
+      "copied": [],
+      "buzz": [],
+      "words": 123,
+      "email": "Hi Jane,\n\nHope you’re doing well. ApexPay Gaming likely handles many repetitive tickets around payout status, failed transactions, chargebacks, and fraud review holds from both operators and end users. These time-sensitive money questions can create spikes that strain support teams.\n\nRaphie Automates these common workflows to reduce ticket volume and improve response times while ensuring policy-consistent replies. We also maintain clear escalation paths and audit trails for sensitive cases, which is crucial given your multi-market and KYC/AML requirements. Handling crypto-related questions like wallet and network delays is another area we support.\n\nWould you be interested in a brief call to explore how Raphie could help ApexPay Gaming manage peak support demand without increasing headcount?\n\nWarm regards,\nRaphie"
     },
     {
       "id": "bigbet-lowconf",
       "rep": 0,
-      "ms": 1177,
+      "ms": 1231,
       "ok": true,
       "firstTry": true,
       "attempts": 1,
@@ -109,236 +123,212 @@
       "typeOk": true,
       "mentionOk": null,
       "absentOk": true,
+      "copied": [
+        "a 15 minute call next",
+        "15 minute call next week"
+      ],
+      "buzz": [],
+      "words": 89,
+      "email": "Hi Alex,\n\nI’m with Raphie. We automate support workflows for sportsbooks like Big Bet Sports, focusing on withdrawals and KYC tickets. Teams like yours usually face high volumes and complex player questions that slow response times.\n\nRaphie helps speed up answers on payout status and document verification, keeping replies consistent and policy-aligned. Our system also ensures smooth handoffs for sensitive cases, protecting player trust during busy periods.\n\nCould we schedule a 15-minute call next week to explore how Raphie might cut your support load?\n\nBest,\nRaphie"
+    },
+    {
+      "id": "bigbet-lowconf",
+      "rep": 1,
+      "ms": 952,
+      "ok": true,
+      "firstTry": true,
+      "attempts": 1,
+      "violations": [],
+      "tier": "low",
+      "type": "operator",
+      "typeOk": true,
+      "mentionOk": null,
+      "absentOk": true,
+      "copied": [],
+      "buzz": [],
+      "words": 81,
+      "email": "Hi Alex,\n\nI'm with Raphie. We automate repetitive support workflows like withdrawal inquiries and KYC verification tickets. Teams like yours usually face high player volume and complex verification demands.\n\nBig Bet Sports likely sees many withdrawal status questions and document verification requests. Raphie helps reduce response times with policy-consistent suggested replies and clear escalation paths for sensitive cases, keeping the process auditable and efficient.\n\nWould you have 15 minutes next week for a quick call to explore this?\n\nBest,\nRaphie"
+    },
+    {
+      "id": "bigbet-tailored",
+      "rep": 0,
+      "ms": 1087,
+      "ok": true,
+      "firstTry": true,
+      "attempts": 1,
+      "violations": [],
+      "tier": "high",
+      "type": "operator",
+      "typeOk": true,
+      "mentionOk": true,
+      "absentOk": null,
+      "copied": [
+        "a 15 minute call next",
+        "15 minute call next week"
+      ],
+      "buzz": [],
+      "words": 100,
+      "email": "Hi Alex,\n\nI’m with Raphie. We automate support workflows for sportsbook operators like Big Bet Sports, focusing on withdrawals and KYC tickets. These are high-volume areas that swell around major sporting events and require fast, policy-consistent answers to maintain player trust.\n\nGiven your US footprint, state-specific rules add complexity to payouts and verification. Raphie helps reduce repetitive tickets and spike-related pressure by suggesting replies that follow compliance, while ensuring smooth handoffs and audit trails for sensitive cases.\n\nWould a 15-minute call next week work to discuss how Raphie can support your team?\n\nBest,\nRaphie"
+    },
+    {
+      "id": "bigbet-tailored",
+      "rep": 1,
+      "ms": 1019,
+      "ok": true,
+      "firstTry": true,
+      "attempts": 1,
+      "violations": [],
+      "tier": "high",
+      "type": "operator",
+      "typeOk": true,
+      "mentionOk": true,
+      "absentOk": null,
+      "copied": [
+        "a 15 minute call next",
+        "15 minute call next week"
+      ],
+      "buzz": [],
+      "words": 94,
+      "email": "Hi Alex,\n\nI’m with Raphie. We automate support for sportsbook operators like Big Bet Sports, focusing on high-volume withdrawals and KYC tickets. US state regulations add complexity, causing frequent player questions on payout status and document verification.\n\nRaphie reduces repetitive tickets by delivering fast, policy-consistent replies and clear escalation paths for sensitive cases. This keeps your team agile during peak betting periods without adding headcount, improving player trust and resolution speed.\n\nCan we schedule a 15-minute call next week to discuss how Raphie can help your support team?\n\nBest,\nRaphie"
+    },
+    {
+      "id": "crypto-warm",
+      "rep": 0,
+      "ms": 1077,
+      "ok": true,
+      "firstTry": true,
+      "attempts": 1,
+      "violations": [],
+      "tier": "high",
+      "type": "operator",
+      "typeOk": true,
+      "mentionOk": null,
+      "absentOk": null,
+      "copied": [
+        "consistent policy aware replies and"
+      ],
+      "buzz": [
+        "streamlin"
+      ],
+      "words": 106,
+      "email": "Hi Chris,\n\nHope you’re doing well. At Raphie, we help teams like Zeta Crypto Casino automate support for common player questions around withdrawals, bonus disputes, and account access. Crypto wallets and on-chain delays often cause repetitive tickets that slow down response times.\n\nGiven your offshore crypto casino model, consistent, policy-aware replies and smooth handoffs for sensitive cases can improve player trust while managing high-volume spikes without adding headcount. Raphie also supports multi-market rules and languages to fit your global footprint.\n\nWould you be interested in a brief call to explore how Raphie could help streamline your support workflows?\n\nWarm regards,\nRaphie"
+    },
+    {
+      "id": "crypto-warm",
+      "rep": 1,
+      "ms": 1100,
+      "ok": true,
+      "firstTry": true,
+      "attempts": 1,
+      "violations": [],
+      "tier": "high",
+      "type": "operator",
+      "typeOk": true,
+      "mentionOk": null,
+      "absentOk": null,
+      "copied": [
+        "would you be open to",
+        "you be open to a"
+      ],
+      "buzz": [],
+      "words": 108,
+      "email": "Hi Chris,\n\nHope you're doing well. I’m reaching out from Raphie because Zeta Crypto Casino likely handles many repetitive tickets around withdrawal status, bonus disputes, and wallet or network delays. These issues can create spikes in support volume that are tough to manage without extra staff.\n\nRaphie automates those common questions with fast, policy-consistent replies and keeps complex or sensitive cases on a clear escalation path with audit trails. This helps maintain player trust, especially when crypto transactions and verification requirements add complexity across multiple markets.\n\nWould you be open to a brief call to explore how Raphie could ease your support load?\n\nWarm regards,\nRaphie"
+    },
+    {
+      "id": "helper-down",
+      "rep": 0,
+      "ms": 1044,
+      "ok": true,
+      "firstTry": true,
+      "attempts": 1,
+      "violations": [],
+      "tier": "none",
+      "type": "operator",
+      "typeOk": true,
+      "mentionOk": null,
+      "absentOk": null,
+      "copied": [
+        "would you be open to",
+        "you be open to a"
+      ],
+      "buzz": [],
+      "words": 95,
+      "email": "Hi Jane,\n\nHope you're doing well. Riverline Sportsbook likely sees many tickets about withdrawal status, KYC verification, promo disputes, and account access, especially during big game spikes. These are common areas where repetitive questions slow down support teams.\n\nRaphie automates these workflows to reduce response times and provide consistent, policy-aligned replies. It also ensures smooth handoffs for sensitive cases with a clear audit trail, which helps maintain player trust around money and verification issues.\n\nWould you be open to a brief call to explore if this could ease your support load?\n\nWarm regards,\nRaphie"
+    },
+    {
+      "id": "helper-down",
+      "rep": 1,
+      "ms": 1076,
+      "ok": true,
+      "firstTry": true,
+      "attempts": 1,
+      "violations": [],
+      "tier": "none",
+      "type": "operator",
+      "typeOk": true,
+      "mentionOk": null,
+      "absentOk": null,
+      "copied": [
+        "auditable would you be open",
+        "would you be open to",
+        "you be open to a"
+      ],
+      "buzz": [],
+      "words": 100,
+      "email": "Hi Jane,\n\nHope you’re doing well. It looks like Riverline Sportsbook handles a high volume of withdrawal inquiries, KYC questions, and promo eligibility disputes, especially during big game days. These types of tickets often require quick, consistent responses to keep players satisfied and maintain trust.\n\nRaphie automates these repetitive workflows, improving response times and helping your team handle spikes without losing accuracy. Our system suggests policy-consistent replies and ensures smooth handoffs for sensitive cases, keeping everything auditable.\n\nWould you be open to a brief call to explore how Raphie could support your team’s workflow?\n\nWarm regards,\nRaphie"
+    },
+    {
+      "id": "kyc-vendor-junk-type",
+      "rep": 0,
+      "ms": 922,
+      "ok": true,
+      "firstTry": true,
+      "attempts": 1,
+      "violations": [],
+      "tier": "high",
+      "type": "compliance",
+      "typeOk": true,
+      "mentionOk": null,
+      "absentOk": null,
+      "copied": [
+        "verification status questions document resubmission",
+        "status questions document resubmission requests",
+        "a 15 minute call next",
+        "15 minute call next week"
+      ],
+      "buzz": [],
+      "words": 79,
+      "email": "Hi Priya,\n\nI'm with Raphie. We automate support workflows for companies like VerifyNow KYC, focusing on verification status questions, document resubmission requests, and case escalations.\n\nGiven your US footprint, the volume of repetitive status inquiries alongside sensitive cases requires clear audit trails and policy-consistent replies. Raphie speeds up responses and ensures smooth, auditable handoffs to humans for complex cases.\n\nCould we schedule a 15-minute call next week to discuss how this might fit your team?\n\nBest,\nRaphie"
+    },
+    {
+      "id": "kyc-vendor-junk-type",
+      "rep": 1,
+      "ms": 2141,
+      "ok": true,
+      "firstTry": false,
+      "attempts": 2,
+      "violations": [],
+      "tier": "high",
+      "type": "compliance",
+      "typeOk": true,
+      "mentionOk": null,
+      "absentOk": null,
       "copied": [
         "would you be open to",
         "you be open to a",
         "a 15 minute call next",
         "15 minute call next week"
       ],
-      "buzz": [],
-      "words": 91,
-      "email": "Hi Alex,\n\nI'm with Raphie. We automate support workflows that handle withdrawal questions and KYC verification tickets. Teams like yours usually see high volume in these areas, especially during peak sports events.\n\nBig Bet Sports can reduce response times and improve consistency with policy-compliant suggested replies. Our system deflects common tickets and ensures sensitive cases escalate smoothly with full audit trails. This keeps your support efficient and players confident.\n\nWould you be open to a 15-minute call next week to explore how this could work for you?\n\nBest,\nRaphie"
-    },
-    {
-      "id": "bigbet-lowconf",
-      "rep": 1,
-      "ms": 965,
-      "ok": true,
-      "firstTry": true,
-      "attempts": 1,
-      "violations": [],
-      "tier": "low",
-      "type": "operator",
-      "typeOk": true,
-      "mentionOk": null,
-      "absentOk": true,
-      "copied": [
-        "a 15 minute call next",
-        "15 minute call next week"
+      "buzz": [
+        "streamlin"
       ],
-      "buzz": [],
-      "words": 87,
-      "email": "Hi Alex,\n\nI'm with Raphie. We automate repetitive support tasks for sportsbooks, focusing on withdrawals and KYC tickets. Teams like yours usually handle high volumes of payout queries and document checks.\n\nBig Bet Sports faces heavy withdrawal traffic and frequent KYC questions. Raphie speeds up response times, reduces repeat inquiries, and guides agents with consistent, policy-aligned replies. Sensitive cases get clean human handoffs with full audit trails.\n\nCan we schedule a 15-minute call next week to explore how Raphie could help your team?\n\nBest,\nRaphie"
-    },
-    {
-      "id": "bigbet-tailored",
-      "rep": 0,
-      "ms": 1220,
-      "ok": true,
-      "firstTry": true,
-      "attempts": 1,
-      "violations": [],
-      "tier": "high",
-      "type": "operator",
-      "typeOk": true,
-      "mentionOk": false,
-      "absentOk": null,
-      "copied": [
-        "a 15 minute call next",
-        "15 minute call next week"
-      ],
-      "buzz": [],
-      "words": 91,
-      "email": "Hi Alex,\n\nI'm with Raphie. We automate support for sportsbooks like Big Bet Sports, focusing on high-volume withdrawal and KYC tickets. US state regulations add complexity, causing frequent player questions about payouts and document verification.\n\nRaphie reduces repetitive tickets by handling common inquiries quickly and providing agents with policy-consistent replies. This helps your team absorb peak spikes without extra headcount while keeping sensitive cases escalated with clear audit trails.\n\nCan we schedule a 15-minute call next week to explore how Raphie might ease your support load?\n\nBest,\nRaphie"
-    },
-    {
-      "id": "bigbet-tailored",
-      "rep": 1,
-      "ms": 1116,
-      "ok": true,
-      "firstTry": true,
-      "attempts": 1,
-      "violations": [],
-      "tier": "high",
-      "type": "operator",
-      "typeOk": true,
-      "mentionOk": false,
-      "absentOk": null,
-      "copied": [
-        "human handoffs for sensitive cases",
-        "a 15 minute call next",
-        "15 minute call next week"
-      ],
-      "buzz": [],
-      "words": 97,
-      "email": "Hi Alex,\n\nI’m with Raphie. We automate repetitive support workflows like withdrawal status updates and KYC document verification for sportsbook operators. Big Bet Sports likely handles high withdrawal volume and frequent KYC tickets, especially with complex US state requirements.\n\nRaphie speeds up responses, reduces repeat tickets, and ensures policy-consistent replies with clear human handoffs for sensitive cases. This helps contain spikes during big events without adding headcount and protects player trust around money and verification issues.\n\nCan we schedule a 15-minute call next week to discuss how Raphie could support your team?\n\nBest,\nRaphie"
-    },
-    {
-      "id": "crypto-warm",
-      "rep": 0,
-      "ms": 1471,
-      "ok": true,
-      "firstTry": true,
-      "attempts": 1,
-      "violations": [],
-      "tier": "high",
-      "type": "operator",
-      "typeOk": true,
-      "mentionOk": null,
-      "absentOk": null,
-      "copied": [
-        "sensitive or high risk cases",
-        "would you be open to",
-        "you be open to a"
-      ],
-      "buzz": [],
-      "words": 110,
-      "email": "Hi Chris,\n\nHope you're doing well. It looks like Zeta Crypto Casino handles a high volume of player inquiries about deposits, withdrawals, and bonus disputes. These topics often generate repetitive tickets, especially with crypto wallet questions and payout status updates.\n\nRaphie automates common support workflows to reduce those repeat tickets and improve response times. Our platform suggests policy-consistent replies while ensuring sensitive or high-risk cases escalate cleanly to humans, complete with an audit trail. This helps teams handle peaks without extra headcount and maintain trust across multiple markets.\n\nWould you be open to a brief call to explore how this might ease your support load?\n\nWarm regards,\nRaphie"
-    },
-    {
-      "id": "crypto-warm",
-      "rep": 1,
-      "ms": 1058,
-      "ok": true,
-      "firstTry": true,
-      "attempts": 1,
-      "violations": [],
-      "tier": "high",
-      "type": "operator",
-      "typeOk": true,
-      "mentionOk": null,
-      "absentOk": null,
-      "copied": [
-        "would you be open to",
-        "you be open to a"
-      ],
-      "buzz": [],
-      "words": 115,
-      "email": "Hi Chris,\n\nHope you’re doing well. I’m reaching out from Raphie because Zeta Crypto Casino likely faces repetitive support tickets around deposit and withdrawal status, bonus disputes, and wallet or network delay questions. These common queries can add up and create pressure during peak times.\n\nRaphie automates these workflows to improve response times and deflect repeat tickets while ensuring policy-consistent replies. For sensitive cases like KYC or document verification, we provide clear escalation paths and audit trails to keep everything compliant. This helps support teams handle high volumes without needing more staff.\n\nWould you be open to a brief chat to explore if this could ease your support load?\n\nWarm regards,\nRaphie"
-    },
-    {
-      "id": "helper-down",
-      "rep": 0,
-      "ms": 1057,
-      "ok": true,
-      "firstTry": true,
-      "attempts": 1,
-      "violations": [],
-      "tier": "none",
-      "type": "operator",
-      "typeOk": true,
-      "mentionOk": null,
-      "absentOk": null,
-      "copied": [
-        "would you be open to",
-        "you be open to a"
-      ],
-      "buzz": [],
-      "words": 100,
-      "email": "Hi Jane,\n\nHope you’re doing well. It looks like Riverline Sportsbook handles a high volume of withdrawal queries, KYC questions, and promo eligibility disputes, especially during big game days. These ticket types often create peaks that challenge support teams.\n\nRaphie automates repetitive workflows like payout status updates and document verification while suggesting consistent, policy-aligned replies. This helps reduce response times and keeps sensitive cases escalated with clear audit trails, which can protect player trust during busy periods.\n\nWould you be open to a brief call to explore how this might ease your team’s workload?\n\nWarm regards,\nRaphie"
-    },
-    {
-      "id": "helper-down",
-      "rep": 1,
-      "ms": 1264,
-      "ok": true,
-      "firstTry": true,
-      "attempts": 1,
-      "violations": [],
-      "tier": "none",
-      "type": "operator",
-      "typeOk": true,
-      "mentionOk": null,
-      "absentOk": null,
-      "copied": [
-        "from the outside teams like",
-        "the outside teams like yours",
-        "outside teams like yours usually",
-        "answers on money and verification",
-        "would you be open to",
-        "you be open to a"
-      ],
-      "buzz": [],
-      "words": 113,
-      "email": "Hi Jane,\n\nHope you’re doing well. I’m reaching out from Raphie because Riverline Sportsbook likely handles high volumes of withdrawal questions, KYC verifications, and promo eligibility disputes, especially around big game days. These types of tickets often create spikes and operational challenges for support teams.\n\nRaphie automates these repetitive workflows, providing quick, policy-consistent replies while ensuring smooth handoffs for sensitive cases. This helps reduce response times and keeps player trust intact during busy periods. From the outside, teams like yours usually benefit from faster answers on money and verification issues.\n\nWould you be open to a brief call to explore if this could help your support team?\n\nWarm regards,\nRaphie"
-    },
-    {
-      "id": "kyc-vendor-junk-type",
-      "rep": 0,
-      "ms": 1532,
-      "ok": true,
-      "firstTry": true,
-      "attempts": 1,
-      "violations": [],
-      "tier": "high",
-      "type": "compliance",
-      "typeOk": true,
-      "mentionOk": null,
-      "absentOk": null,
-      "copied": [
-        "a 15 minute call next",
-        "15 minute call next week"
-      ],
-      "buzz": [],
-      "words": 80,
-      "email": "Hi Priya,\n\nI'm with Raphie. We automate customer support workflows, reducing repetitive verification status inquiries and document resubmission tickets for identity verification providers like VerifyNow KYC.\n\nGiven your US footprint, state-by-state compliance adds complexity and volume to support. Raphie improves response times with policy-consistent replies and ensures sensitive cases escalate cleanly to humans with a full audit trail.\n\nCould we schedule a 15-minute call next week to discuss how Raphie could help your team?\n\nBest,\nRaphie"
-    },
-    {
-      "id": "kyc-vendor-junk-type",
-      "rep": 1,
-      "ms": 1002,
-      "ok": true,
-      "firstTry": true,
-      "attempts": 1,
-      "violations": [],
-      "tier": "high",
-      "type": "compliance",
-      "typeOk": true,
-      "mentionOk": null,
-      "absentOk": null,
-      "copied": [
-        "a 15 minute call next",
-        "15 minute call next week"
-      ],
-      "buzz": [],
-      "words": 80,
-      "email": "Hi Priya,\n\nI'm with Raphie. We automate repetitive support tasks like verification status questions and document resubmission requests for KYC providers.\n\nGiven VerifyNow KYC’s US footprint, you likely handle many status inquiries alongside sensitive verification cases. Raphie speeds response times with policy-consistent replies while ensuring clean handoffs and audit trails for high-risk escalations.\n\nCould we schedule a 15-minute call next week to discuss how Raphie might reduce your ticket volume and improve compliance workflows?\n\nBest,\nRaphie"
+      "words": 95,
+      "email": "Hi Priya,\n\nI’m with Raphie. We automate repetitive customer support workflows like verification status questions and document resubmission requests, while maintaining clear handoffs to humans for sensitive cases.\n\nGiven VerifyNow KYC’s role in US sportsbook and casino compliance, you likely handle many routine status inquiries alongside complex escalations. Raphie helps reduce response times and ensures policy-consistent replies with an audit trail, which is critical for fintech compliance and customer trust.\n\nWould you be open to a 15-minute call next week to explore how Raphie can streamline your support operations?\n\nBest,\nRaphie"
     },
     {
       "id": "lowconf-data",
       "rep": 0,
-      "ms": 1335,
-      "ok": true,
-      "firstTry": true,
-      "attempts": 1,
-      "violations": [],
-      "tier": "low",
-      "type": "data",
-      "typeOk": true,
-      "mentionOk": null,
-      "absentOk": true,
-      "copied": [
-        "a 15 minute call next",
-        "15 minute call next week"
-      ],
-      "buzz": [],
-      "words": 83,
-      "email": "Hi Maria,\n\nI’m with Raphie. We automate support workflows for teams handling time-sensitive operator tickets like feed latency, outages, and data discrepancies during live events.\n\nAcme Widgets likely faces urgent queries during matches where fast triage and clear status updates are crucial to prevent escalations. Raphie helps by deflecting common issues, suggesting consistent replies, and managing smooth handoffs for complex cases.\n\nCould we schedule a 15-minute call next week to discuss how this might fit your support team?\n\nBest,\nRaphie"
-    },
-    {
-      "id": "lowconf-data",
-      "rep": 1,
-      "ms": 1023,
+      "ms": 1114,
       "ok": true,
       "firstTry": true,
       "attempts": 1,
@@ -350,34 +340,31 @@
       "absentOk": true,
       "copied": [],
       "buzz": [],
-      "words": 88,
-      "email": "Hi Maria,\n\nI'm with Raphie. We automate customer support workflows and help teams handle repetitive tickets faster. For Acme Widgets, operator clients likely raise urgent issues like feed latency, outages, and data discrepancies during live events.\n\nRaphie speeds up triage and delivers consistent, policy-aligned responses to common queries. This reduces resolution times and keeps escalation paths clear, which is crucial when seconds count during live betting.\n\nWould you have 15 minutes next week for a quick call to explore how Raphie could support your team?\n\nBest,\nRaphie"
+      "words": 95,
+      "email": "Hi Maria,\n\nI'm with Raphie. We automate support workflows for companies like Acme Widgets, where operator clients raise tickets about feed latency and data discrepancies during live events. These time-critical issues demand fast triage and clear status updates to avoid escalations.\n\nTeams like yours usually see repetitive questions about outages and integration problems. Raphie helps by automating responses to common ticket types, improving resolution times while keeping escalation paths clear and auditable.\n\nWould you have 15 minutes next week for a quick call to explore how Raphie could assist your support team?\n\nBest,\nRaphie"
     },
     {
-      "id": "riverline-direct",
-      "rep": 0,
-      "ms": 1783,
+      "id": "lowconf-data",
+      "rep": 1,
+      "ms": 1040,
       "ok": true,
       "firstTry": true,
       "attempts": 1,
       "violations": [],
-      "tier": "high",
-      "type": "operator",
+      "tier": "low",
+      "type": "data",
       "typeOk": true,
       "mentionOk": null,
-      "absentOk": null,
-      "copied": [
-        "a 15 minute call next",
-        "15 minute call next week"
-      ],
+      "absentOk": true,
+      "copied": [],
       "buzz": [],
-      "words": 100,
-      "email": "Hi Jane,\n\nI’m with Raphie, and we automate support workflows for Riverline Sportsbook’s high-volume tickets like withdrawals, KYC verification, promo disputes, and account lockouts. Given your US footprint, state-specific rules add complexity and increase ticket volume, especially during big game days.\n\nRaphie helps reduce repetitive tickets and speeds up response times with policy-consistent replies and clear escalation paths for sensitive cases. This means your team can handle peak spikes without extra headcount while maintaining a trustworthy player experience.\n\nCould we schedule a 15-minute call next week to discuss how we might help?\n\nBest,\nRaphie"
+      "words": 98,
+      "email": "Hi Maria,\n\nI'm with Raphie. We automate support workflows to reduce response times and deflect common tickets. For odds and sports data feed providers like Acme Widgets, your operator clients likely raise tickets about feed latency, outages, and data discrepancies during live events.\n\nThese issues require fast triage and clear status updates to stop escalations. Raphie helps by suggesting policy-consistent replies and automating routine checks, letting your team focus on critical cases while keeping audit trails.\n\nWould you have 15 minutes next week for a quick call to discuss how this could fit Acme Widgets?\n\nBest,\nRaphie"
     },
     {
       "id": "riverline-direct",
-      "rep": 1,
-      "ms": 3167,
+      "rep": 0,
+      "ms": 2493,
       "ok": true,
       "firstTry": false,
       "attempts": 2,
@@ -388,7 +375,8 @@
       "mentionOk": null,
       "absentOk": null,
       "copied": [
-        "cases with an audit trail",
+        "add complexity to verification and",
+        "complexity to verification and payouts",
         "would you be open to",
         "you be open to a",
         "a 15 minute call next",
@@ -396,7 +384,30 @@
       ],
       "buzz": [],
       "words": 102,
-      "email": "Hi Jane,\n\nI’m with Raphie. We automate support workflows for sportsbook operators like Riverline Sportsbook that face high withdrawal volume, KYC questions, and promo eligibility disputes. Your spikes on big game days make fast, consistent replies critical.\n\nGiven your US footprint, state-by-state rules add complexity to payouts and verification. Raphie helps contain repetitive tickets and absorb peak demand without extra headcount. We deliver policy-consistent answers and keep clean handoffs for sensitive cases with an audit trail.\n\nWould you be open to a 15-minute call next week to explore how Raphie could improve your support efficiency?\n\nBest,\nRaphie"
+      "email": "Hi Jane,\n\nI’m with Raphie. We automate high-volume support like withdrawals, KYC questions, promo disputes, and account access issues. Given your US footprint, state-by-state rules add complexity to verification and payouts.\n\nRiverline Sportsbook likely faces spikes during big games and steady demand on sensitive topics. Raphie helps reduce repetitive tickets and improve resolution speed with consistent, policy-aligned replies. Our platform keeps clean handoffs and audit trails for high-risk cases, protecting trust without extra headcount.\n\nWould you be open to a 15-minute call next week to explore how Raphie can ease your support load?\n\nBest,\nRaphie"
+    },
+    {
+      "id": "riverline-direct",
+      "rep": 1,
+      "ms": 2347,
+      "ok": true,
+      "firstTry": false,
+      "attempts": 2,
+      "violations": [],
+      "tier": "high",
+      "type": "operator",
+      "typeOk": true,
+      "mentionOk": null,
+      "absentOk": null,
+      "copied": [
+        "would you be open to",
+        "you be open to a",
+        "a 15 minute call next",
+        "15 minute call next week"
+      ],
+      "buzz": [],
+      "words": 99,
+      "email": "Hi Jane,\n\nI’m with Raphie. We automate support for sportsbook operators like Riverline Sportsbook, handling withdrawal status, KYC questions, promo disputes, and account access issues. With your high US withdrawal volume and game-day spikes, repetitive tickets slow your team down.\n\nRaphie reduces response times by automating common queries with policy-consistent replies and clear escalation for sensitive cases. This helps contain peak demand without adding headcount, while keeping audit trails that match US regulatory needs.\n\nWould you be open to a 15-minute call next week to explore how we can improve your support efficiency?\n\nBest,\nRaphie"
     }
   ]
 }

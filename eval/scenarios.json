@@ -25,7 +25,7 @@
   },
   {
     "id": "bigbet-tailored",
-    "why": "Tailoring A/B (high): facts only the helper knows (geolocation, age verification, US/Canada, AML...) should reach the email",
+    "why": "Tailoring A/B (high): facts only the helper supplies (US/Canada, geolocation, age verification, AML, PII) should reach the email; the description mentions none of them",
     "input": {
       "recipientName": "Alex Gould",
       "companyName": "Big Bet Sports",
@@ -38,7 +38,7 @@
   },
   {
     "id": "bigbet-lowconf",
-    "why": "Tailoring A/B (low): same payload at confidence 0.2, none of those helper-only facts may appear",
+    "why": "Tailoring A/B (low): same payload at confidence 0.2; none of those helper-only facts may appear",
     "input": {
       "recipientName": "Alex Gould",
       "companyName": "Big Bet Sports",
