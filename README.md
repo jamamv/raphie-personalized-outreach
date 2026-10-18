@@ -210,17 +210,50 @@ Helper confidence 0.99 → tailored, specific helper facts allowed
 
 The model is asked to follow the rules, but **code decides**.
 
-| Rule | How it is checked |
-|---|---|
-| No em dash (—) | Fixed in code (replaced with a comma). Spaced en dashes and ` -- ` count too, since they are the usual substitutes. |
-| No sentence starting with "Furthermore" or "Additionally" | Fixed in code (word removed). |
-| No "fantastic" | Fixed in code. |
-| At most one `!` | Fixed in code (extras become periods). |
-| No two consecutive sentences starting with the same word | Checked; the model must rewrite. Greeting and sign-off count as sentences (the stricter reading). |
-| No sentence over 30 words | Checked; the model must rewrite. Words are whitespace-separated tokens, so "15-minute" is one word. The prompt asks for 25 to leave headroom. |
-| Recipient's name, company name, a call request, "Raphie" | Checked. The name check works in any alphabet (José, Łukasz) and skips titles ("Dr. Jane Doe" becomes "Hi Jane,"). |
+**How the checker reads an email.** Every line is split into sentences after `.`, `!` or `?` followed by a space; common abbreviations (e.g., i.e., U.S., Dr.) do not end a sentence. The greeting ("Hi Jane,") and the sign-off ("Best," and "Raphie") count as sentences, the stricter reading. A word is any space-separated token containing a letter or digit, so "15-minute" and "policy-aware" are one word each. Comparisons ignore upper and lower case.
+
+#### Raphie's six rules
+
+| Rule | What breaks it | Example that fails | What happens |
+|---|---|---|---|
+| **No em dashes** | The em dash `—` anywhere, with or without spaces. A spaced en dash ` – ` and a spaced double hyphen ` -- ` count too, as the usual substitutes. An unspaced en dash in a range ("2–3") is allowed. | "We help — fast." | Code replaces it with a comma: "We help, fast." |
+| **No "Furthermore" or "Additionally" at the start of a sentence** | Either word as the first word of any sentence, followed by a comma, a colon or nothing. Mid-sentence use is fine. | "Additionally, we route KYC cases." | Code removes the word and capitalises the next one: "We route KYC cases." |
+| **No "fantastic"** | The word anywhere, in any case, including "Fantastic" and "fantastically". | "That is a fantastic result." | Code replaces it ("great", or "remarkably" for "fantastically"), keeping the capital letter. |
+| **At most one exclamation mark** | More than one `!` in the whole email, greeting and sign-off included. | "Hope you're well! Quick idea!" | Code collapses "!!" to "!", then turns every extra `!` into a period. |
+| **No two consecutive sentences starting with the same word** | Two sentences in a row with the same first word, ignoring case and apostrophe style. | "We automate KYC tickets. We also help agents." | Sent back to the model, quoting both sentences. |
+| **No sentence over 30 words** | 31 or more words in one sentence. Exactly 30 is allowed. The prompt asks for 25 to leave headroom, since models count poorly. | A 34-word sentence | Sent back to the model, quoting the sentence and its word count. |
+
+#### Required content (from the brief's "the email must include")
+
+| Rule | What breaks it | Example that fails | What happens |
+|---|---|---|---|
+| **The recipient's name** | The first name is missing as a whole word. The first name is the first word typed, skipping titles (Mr, Mrs, Ms, Miss, Mx, Dr, Prof, Sir), and works in any alphabet. A longer name does not count: "Josefina" is not "José". | Name typed "Dr. Jane Doe", email never says "Jane" | Sent back to the model. In practice it cannot fail, because code writes the greeting "Hi Jane," itself. |
+| **The company name** | The company name exactly as typed is missing (any case). Part of it does not count. | Company "Riverline Sportsbook", email only says "Riverline" | Sent back to the model. |
+| **A call request** | The email has no `?`, or none of the words call, chat, conversation, meet, meeting or talk. Both are needed. | "Let me know if this sounds useful." | Sent back to the model. |
+| **The sender** | The word "Raphie" is missing. | | Cannot fail in practice: code adds "Raphie" in the sign-off. |
+
+#### Soft check
+
+| Check | What triggers it | What happens |
+|---|---|---|
+| **Buzzwords** | leverage, seamless, synergy, unlock, game-changer, cutting-edge, elevate, delve, robust, empower, revolutionise, best-in-class, world-class, holistic, paradigm, transformative, supercharge, streamline, "finds you well", fast-paced | A note is shown, but the email is not rejected: this is style guidance, not one of Alex's rules. |
 
 **Subject lines** are not in the brief, but every real cold email needs one. After an email passes, a small separate call on the light model (`src/subject.js`, `prompts/subject.md`) writes a 2 to 6 word subject from the finished email, so it always matches the body. Code checks it (`checkSubject` in `src/validator.js`): 2 to 8 words, at most 60 characters, and no exclamation marks, dashes, "fantastic", emojis, fake "Re:"/"Fwd:" or shouting in capitals. A failing subject is retried once with the problems listed, then replaced by a plain fallback, so the subject can never block the email. It costs about $0.20 per 1,000 emails, and in the web UI it is editable, checked live, copyable on its own, and can be rerolled with "New subject" without rewriting the email.
+
+#### Subject line rules
+
+| What breaks it | Example that fails |
+|---|---|
+| Fewer than 2 or more than 8 words | "Hi" |
+| More than 60 characters | |
+| An exclamation mark | "Big idea for you!" |
+| Any dash: em, en or `--` | "support — fast" |
+| The word "fantastic" | "A fantastic idea" |
+| Pretending to be a reply or forward | "Re: our chat", "Fwd: support" |
+| An emoji | "support 🚀 ideas" |
+| A word of 4+ capital letters that is not an industry acronym (GDPR, LATAM, APAC, EMEA, MENA, NFL, NBA, UEFA, FIFA; 3-letter ones like KYC always pass) | "FREE support automation" |
+
+A failing subject is sent back once with the problems; if it still fails, the fallback "Support at {company}" is used.
 
 Structural problems go back to the model with the offending sentences quoted, at most twice. If the email still fails, **nothing is printed as an email**: the CLI exits with code 2 and lists the problems, and the web UI shows the problems instead of a draft. Buzzwords (leverage, seamless, unlock...) produce a warning, not a failure, since they are style guidance rather than one of Alex's rules.
 
