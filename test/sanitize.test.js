@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitize, cleanModelOutput } from '../src/sanitize.js';
+import { sanitize } from '../src/sanitize.js';
 import { validateEmail } from '../src/validator.js';
 
 test('removes em dashes', () => {
@@ -27,6 +27,3 @@ test('output never violates the hard bans', () => {
   for (const r of ['em_dash', 'banned_opener', 'banned_word', 'exclamations']) assert.ok(!rules.includes(r), r);
 });
 
-test('cleans markdown fences and subject lines', () => {
-  assert.equal(cleanModelOutput('```\nSubject: Hello\n\nHi Jo,\n```'), 'Hi Jo,');
-});

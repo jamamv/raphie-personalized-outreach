@@ -2,59 +2,89 @@
   {
     "id": "riverline-direct",
     "why": "Brief example #1, high-confidence operator",
-    "input": { "recipientName": "Jane Doe", "companyName": "Riverline Sportsbook", "tone": "direct",
-      "description": "A sportsbook operator with high withdrawal volume, KYC questions, promo eligibility disputes, and periodic support spikes on big game days" },
+    "input": {
+      "recipientName": "Jane Doe",
+      "companyName": "Riverline Sportsbook",
+      "tone": "direct",
+      "description": "A sportsbook operator with high withdrawal volume, KYC questions, promo eligibility disputes, and periodic support spikes on big game days"
+    },
     "helper": "riverline_operator",
     "expectType": "operator"
   },
   {
     "id": "apexpay-warm-conflict",
     "why": "Brief example #2; helper says 'platform', description says payments, description must win",
-    "input": { "recipientName": "Jane Doe", "companyName": "ApexPay Gaming", "tone": "warm",
-      "description": "A payments provider for iGaming operators that supports card, ACH, and crypto on-ramps, and handles a high volume of payout status and fraud review tickets from operators and end users" },
+    "input": {
+      "recipientName": "Jane Doe",
+      "companyName": "ApexPay Gaming",
+      "tone": "warm",
+      "description": "A payments provider for iGaming operators that supports card, ACH, and crypto on-ramps, and handles a high volume of payout status and fraud review tickets from operators and end users"
+    },
     "helper": "apexpay_platform",
     "expectType": "payments"
   },
   {
     "id": "bigbet-tailored",
-    "why": "Tailoring A/B (high): helper-only fact 'geolocation' should reach the email",
-    "input": { "recipientName": "Alex Gould", "companyName": "Big Bet Sports", "tone": "direct",
-      "description": "A sportsbook operator with high withdrawal volume and frequent KYC tickets" },
+    "why": "Tailoring A/B (high): facts only the helper knows (geolocation, age verification, US/Canada, AML...) should reach the email",
+    "input": {
+      "recipientName": "Alex Gould",
+      "companyName": "Big Bet Sports",
+      "tone": "direct",
+      "description": "A sportsbook operator with high withdrawal volume and frequent KYC tickets"
+    },
     "helper": "draftkings_full",
     "expectType": "operator",
-    "expectMention": "\\bgeoloc|\\blocation"
+    "expectMention": "\\bgeoloc|\\blocation|age verif|responsible gam|\\bUS\\b|United States|Canad|\\bAML\\b|\\bPII\\b"
   },
   {
     "id": "bigbet-lowconf",
-    "why": "Tailoring A/B (low): same payload at confidence 0.2, helper-only facts must not appear",
-    "input": { "recipientName": "Alex Gould", "companyName": "Big Bet Sports", "tone": "direct",
-      "description": "A sportsbook operator with high withdrawal volume and frequent KYC tickets" },
+    "why": "Tailoring A/B (low): same payload at confidence 0.2, none of those helper-only facts may appear",
+    "input": {
+      "recipientName": "Alex Gould",
+      "companyName": "Big Bet Sports",
+      "tone": "direct",
+      "description": "A sportsbook operator with high withdrawal volume and frequent KYC tickets"
+    },
     "helper": "draftkings_full",
-    "override": { "confidence": 0.2 },
+    "override": {
+      "confidence": 0.2
+    },
     "expectType": "operator",
-    "expectAbsent": "\\bgeoloc|\\blocation|\\bUS\\b|United States|Canada|age verification"
+    "expectAbsent": "\\bgeoloc|\\blocation|age verif|responsible gam|\\bUS\\b|United States|Canad|\\bAML\\b|\\bPII\\b"
   },
   {
     "id": "affiliate-warm",
     "why": "Affiliate; helper mislabels it 'platform'",
-    "input": { "recipientName": "Sam Patel", "companyName": "Odds Affiliate Network", "tone": "warm",
-      "description": "An affiliate network that sends traffic to sportsbooks and casinos and gets lots of partner questions about tracking and commissions" },
+    "input": {
+      "recipientName": "Sam Patel",
+      "companyName": "Odds Affiliate Network",
+      "tone": "warm",
+      "description": "An affiliate network that sends traffic to sportsbooks and casinos and gets lots of partner questions about tracking and commissions"
+    },
     "helper": "odds_affiliate",
     "expectType": "affiliate"
   },
   {
     "id": "crypto-warm",
     "why": "Crypto operator with vague regions (INTL)",
-    "input": { "recipientName": "Chris Wong", "companyName": "Zeta Crypto Casino", "tone": "warm",
-      "description": "An offshore crypto casino with deposit and withdrawal questions and bonus disputes" },
+    "input": {
+      "recipientName": "Chris Wong",
+      "companyName": "Zeta Crypto Casino",
+      "tone": "warm",
+      "description": "An offshore crypto casino with deposit and withdrawal questions and bonus disputes"
+    },
     "helper": "zeta_crypto",
     "expectType": "operator"
   },
   {
     "id": "lowconf-data",
     "why": "Unknown name, helper thinks it is a manufacturer at 0.22; description must carry the email",
-    "input": { "recipientName": "Maria Lopez", "companyName": "Acme Widgets", "tone": "direct",
-      "description": "An odds and sports data feed provider whose operator clients raise tickets about feed latency during live events" },
+    "input": {
+      "recipientName": "Maria Lopez",
+      "companyName": "Acme Widgets",
+      "tone": "direct",
+      "description": "An odds and sports data feed provider whose operator clients raise tickets about feed latency during live events"
+    },
     "helper": "acme_low",
     "expectType": "data",
     "expectAbsent": "manufactur|shipping|returns|product safety"
@@ -62,16 +92,24 @@
   {
     "id": "helper-down",
     "why": "Helper unavailable, description only",
-    "input": { "recipientName": "Jane Doe", "companyName": "Riverline Sportsbook", "tone": "warm",
-      "description": "A sportsbook operator with high withdrawal volume, KYC questions, promo eligibility disputes, and periodic support spikes on big game days" },
+    "input": {
+      "recipientName": "Jane Doe",
+      "companyName": "Riverline Sportsbook",
+      "tone": "warm",
+      "description": "A sportsbook operator with high withdrawal volume, KYC questions, promo eligibility disputes, and periodic support spikes on big game days"
+    },
     "helper": null,
     "expectType": "operator"
   },
   {
     "id": "kyc-vendor-junk-type",
     "why": "Helper returns companyType 'error: could not classify company' at 0.99",
-    "input": { "recipientName": "Priya Shah", "companyName": "VerifyNow KYC", "tone": "direct",
-      "description": "An identity verification provider for sportsbooks and casinos that handles document checks and verification status questions" },
+    "input": {
+      "recipientName": "Priya Shah",
+      "companyName": "VerifyNow KYC",
+      "tone": "direct",
+      "description": "An identity verification provider for sportsbooks and casinos that handles document checks and verification status questions"
+    },
     "helper": "verifynow_error_type",
     "expectType": "compliance"
   }

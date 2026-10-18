@@ -9,6 +9,8 @@
  *   tailor    helper-only facts appear when trusted, and stay out when not
  *   copied    5-word phrases lifted from the prompt (templated feel)
  *   buzz      buzzwords that make copy read as AI-written
+ *   stock     (summary) 3-word phrases used for at least half of the different
+ *             companies, the clearest sign of templated copy
  *
  * Usage: npm run eval -- [--model gpt-5.5] [--reps 2] [--label after] [--only id]
  */
@@ -103,6 +105,20 @@ for (const r of results) {
 }
 
 const done = results.filter((r) => !r.error);
+function stockPhrases(rows, n = 3) {
+  const seenIn = {};
+  for (const r of rows) {
+    const body = r.email.split('\n').slice(1, -2).join(' '); // greeting and sign-off are added by code
+    const e = words(body);
+    for (let i = 0; i + n <= e.length; i++) (seenIn[e.slice(i, i + n).join(' ')] ??= new Set()).add(r.id);
+  }
+  const companies = new Set(rows.map((r) => r.id)).size;
+  return Object.entries(seenIn)
+    .filter(([, ids]) => companies > 2 && ids.size >= companies / 2)
+    .sort((a, b) => b[1].size - a[1].size)
+    .map(([g, ids]) => `${g} (${ids.size}/${companies})`);
+}
+
 const pct = (xs) => (xs.length ? `${Math.round((100 * xs.filter(Boolean).length) / xs.length)}%` : '-');
 const summary = {
   label: args.label,
@@ -115,9 +131,10 @@ const summary = {
   tailoringChecks: pct(done.flatMap((r) => [r.mentionOk, r.absentOk]).filter((v) => v !== null)),
   avgCopiedPhrases: (done.reduce((n, r) => n + r.copied.length, 0) / (done.length || 1)).toFixed(1),
   avgBuzzwords: (done.reduce((n, r) => n + r.buzz.length, 0) / (done.length || 1)).toFixed(1),
+  stockPhrases: stockPhrases(done),
   avgSeconds: (done.reduce((n, r) => n + r.ms, 0) / (done.length || 1) / 1000).toFixed(1),
 };
-console.log('\nSummary:', summary);
+console.dir(summary, { depth: null, maxArrayLength: null });
 
 await mkdir(new URL('eval/results/', root), { recursive: true });
 const out = new URL(`eval/results/${args.label}.json`, root);

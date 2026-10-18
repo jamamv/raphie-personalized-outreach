@@ -1,47 +1,51 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchCompanyAnalysis, normalizeAnalysis } from '../src/helper.js';
+import { fetchCompanyAnalysis } from '../src/helper.js';
 
-const payload = { vertical: 'igaming', companyType: 'operator', operatingRegions: ['US'], supportMotion: 'high_volume', isCryptoRelated: false, kycAmlIntensity: 'high', confidence: 0.85 };
+const payload = { companyType: 'operator', confidence: 0.85 };
 const response = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
-const opts = (fetchImpl) => ({ helperUrl: 'http://x', baseDelayMs: 1, helperTimeoutMs: 50, fetchImpl });
+const opts = (fetchImpl, extra = {}) => ({ helperUrl: 'http://x', baseDelayMs: 1, fetchImpl, ...extra });
+const hang = (_url, { signal }) =>
+  new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason)));
 
-test('retries on 503 then succeeds', async () => {
+test('retries fast 503s, then succeeds', async () => {
   let calls = 0;
-  const result = await fetchCompanyAnalysis('Big Bet', opts(async () => (++calls < 3 ? response(503) : response(200, payload))));
+  const r = await fetchCompanyAnalysis('Big Bet', opts(async () => (++calls < 3 ? response(503) : response(200, payload))));
   assert.equal(calls, 3);
-  assert.equal(result.companyType, 'operator');
+  assert.deepEqual([r.ok, r.attempts, r.data.companyType], [true, 3, 'operator']);
 });
 
-test('gives up after max attempts and returns null', async () => {
+test('gives up after max attempts of 503', async () => {
   let calls = 0;
-  const result = await fetchCompanyAnalysis('Big Bet', opts(async () => { calls++; return response(503); }));
-  assert.equal(calls, 3);
-  assert.equal(result, null);
+  const r = await fetchCompanyAnalysis('Big Bet', opts(async () => { calls++; return response(503); }));
+  assert.equal(calls, 4);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /503/);
 });
 
-test('does not retry a 400', async () => {
+test('never retries a 400', async () => {
   let calls = 0;
-  const result = await fetchCompanyAnalysis('Big Bet', opts(async () => { calls++; return response(400); }));
+  const r = await fetchCompanyAnalysis('', opts(async () => { calls++; return response(400); }));
   assert.equal(calls, 1);
-  assert.equal(result, null);
+  assert.equal(r.reason, 'HTTP 400');
 });
 
-test('times out slow responses and retries', async () => {
+test('waits on a slow request once instead of cancelling and retrying', async () => {
   let calls = 0;
-  const slowThenFast = (_url, { signal }) => {
-    calls++;
-    if (calls > 1) return Promise.resolve(response(200, payload));
-    return new Promise((_, reject) => signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))));
-  };
-  const result = await fetchCompanyAnalysis('Big Bet', opts(slowThenFast));
-  assert.equal(calls, 2);
-  assert.equal(result.confidence, 0.85);
+  const r = await fetchCompanyAnalysis('Big Bet', opts((...a) => { calls++; return hang(...a); }, { attemptTimeoutMs: 30 }));
+  assert.equal(calls, 1);
+  assert.match(r.reason, /timed out/);
 });
 
-test('normalises bad payloads safely', () => {
-  assert.equal(normalizeAnalysis(null), null);
-  assert.equal(normalizeAnalysis([]), null);
-  assert.equal(normalizeAnalysis({ companyType: 'Operator' }).confidence, 0);
-  assert.equal(normalizeAnalysis({ confidence: 7 }).confidence, 1);
+test('respects the overall budget across retries', async () => {
+  let calls = 0;
+  const slow503 = async () => { calls++; await new Promise((res) => setTimeout(res, 25)); return response(503); };
+  const r = await fetchCompanyAnalysis('Big Bet', opts(slow503, { budgetMs: 60, maxAttempts: 10 }));
+  assert.equal(r.ok, false);
+  assert.ok(calls < 10, `expected the budget to stop retries, got ${calls} calls`);
+});
+
+test('invalid JSON is a failure, not a crash', async () => {
+  const r = await fetchCompanyAnalysis('Big Bet', opts(async () => ({ ok: true, status: 200, json: async () => { throw new Error('bad'); } })));
+  assert.deepEqual([r.ok, r.reason], [false, 'response was not valid JSON']);
 });

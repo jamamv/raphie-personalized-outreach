@@ -9,16 +9,6 @@ const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const matchCase = (original, replacement) =>
   original[0] === original[0].toUpperCase() ? capitalize(replacement) : replacement;
 
-export function cleanModelOutput(text) {
-  return text
-    .replace(/^```[a-z]*\n?|```$/gim, '')
-    .replace(/^\s*subject:.*\n+/i, '')
-    .replace(/\r\n/g, '\n')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
 export function sanitize(text) {
   const fixes = [];
   let out = text;

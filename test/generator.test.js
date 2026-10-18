@@ -1,61 +1,89 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateEmail } from '../src/generator.js';
-import { buildContext } from '../src/context.js';
+import { assessHelper } from '../src/insights.js';
+import { buildUserMessage, renderEmail } from '../src/prompt.js';
 
-const input = { recipientName: 'Jane Doe', firstName: 'Jane', companyName: 'Riverline Sportsbook', description: 'A sportsbook operator', tone: 'direct' };
-const context = buildContext({ description: input.description, analysis: null });
+const input = { recipientName: 'Jane Doe', companyName: 'Riverline Sportsbook', description: 'A sportsbook operator', tone: 'direct' };
+const assessment = assessHelper({ ok: false, reason: 'HTTP 503' });
 
-const bad = `Hi Jane,
-
-We help teams. We automate tickets at Riverline Sportsbook \u2014 fast.
-
-Would you be open to a call?
-
-Best,
-Raphie`;
-const good = `Hi Jane,
-
-I'm reaching out from Raphie. We automate withdrawal and KYC tickets at teams like Riverline Sportsbook.
-
-Would you be open to a call?
-
-Best,
-Raphie`;
+const reply = (paragraphs) => JSON.stringify({ accountType: 'operator', helperFactsUsed: [], paragraphs });
+const bad = reply([
+  'We help teams. We automate tickets at Riverline Sportsbook — fast.',
+  'Would you be open to a call?',
+]);
+const good = reply([
+  "I'm reaching out from Raphie. Teams like Riverline Sportsbook get a lot of withdrawal and KYC tickets, and we automate them.",
+  'Would you be open to a 15-minute call next week?',
+]);
 
 const fakeClient = (replies) => {
   const calls = [];
   return {
     calls,
-    chat: { completions: { create: async (req) => { calls.push(req); return { choices: [{ message: { content: replies[Math.min(calls.length - 1, replies.length - 1)] } }] }; } } },
+    responses: {
+      create: async (req) => {
+        calls.push(structuredClone(req));
+        return { output_text: replies[Math.min(calls.length - 1, replies.length - 1)] };
+      },
+    },
   };
 };
 
-test('revises with targeted feedback until valid', async () => {
+test('repairs with the exact problems until the email passes', async () => {
   const client = fakeClient([bad, good]);
-  const result = await generateEmail({ client, model: 'm', input, context });
-  assert.equal(result.report.ok, true);
+  const r = await generateEmail({ client, model: 'gpt-4.1-mini', input, assessment });
+  assert.equal(r.ok, true);
   assert.equal(client.calls.length, 2);
-  const feedback = client.calls[1].messages.at(-1).content;
-  assert.match(feedback, /both start with "we"/);
-  assert.doesNotMatch(result.email, /\u2014/);
+  assert.match(client.calls[1].input.at(-1).content, /both start with "we"/);
+  assert.equal(client.calls[1].input.at(-2).role, 'assistant');
 });
 
-test('returns best draft with ok=false when it never passes', async () => {
+test('hard bans are fixed in code, never sent back to the model', async () => {
+  const client = fakeClient([reply(["Raphie automates Riverline Sportsbook's withdrawal tickets — fast.", 'Open to a call next week?'])]);
+  const r = await generateEmail({ client, model: 'gpt-4.1-mini', input, assessment });
+  assert.equal(r.ok, true);
+  assert.equal(client.calls.length, 1);
+  assert.doesNotMatch(r.email, /—/);
+});
+
+test('stops after maxRepairs and reports ok=false', async () => {
   const client = fakeClient([bad]);
-  const result = await generateEmail({ client, model: 'm', input, context, maxRevisions: 2 });
-  assert.equal(result.report.ok, false);
+  const r = await generateEmail({ client, model: 'gpt-4.1-mini', input, assessment, maxRepairs: 2 });
+  assert.equal(r.ok, false);
   assert.equal(client.calls.length, 3);
+  assert.ok(r.violations.length > 0);
 });
 
-test('retries without temperature for models that reject it', async () => {
-  let n = 0;
-  const client = { chat: { completions: { create: async (req) => {
-    n++;
-    if ('temperature' in req) throw Object.assign(new Error("Unsupported value: 'temperature'"), { status: 400 });
-    return { choices: [{ message: { content: good } }] };
-  } } } };
-  const result = await generateEmail({ client, model: 'm', input, context });
-  assert.equal(result.report.ok, true);
-  assert.equal(n, 2);
+test('greeting and sign-off come from code, by tone', () => {
+  assert.match(renderEmail(input, ['Body.']), /^Hi Jane,\n\nBody\.\n\nBest,\nRaphie$/);
+  assert.match(renderEmail({ ...input, tone: 'warm' }, ['Body.']), /Warm regards,\nRaphie$/);
+});
+
+test('reasoning models get reasoning effort, other models get temperature', async () => {
+  const client = fakeClient([good]);
+  await generateEmail({ client, model: 'gpt-5.5', input, assessment });
+  await generateEmail({ client, model: 'gpt-4.1-mini', input, assessment });
+  assert.deepEqual(client.calls[0].reasoning, { effort: 'low' });
+  assert.equal(client.calls[0].temperature, undefined);
+  assert.equal(client.calls[1].temperature, 0.7);
+});
+
+test('helper facts reach the prompt only when the tier allows', () => {
+  const data = { companyType: 'operator', supportMotion: 'high_volume', likelyTicketDrivers: ['geolocation'], operatingRegions: ['US'] };
+  const high = buildUserMessage(input, assessHelper({ ok: true, data: { ...data, confidence: 0.9 } }));
+  const mid = buildUserMessage(input, assessHelper({ ok: true, data: { ...data, confidence: 0.5 } }));
+  const low = buildUserMessage(input, assessHelper({ ok: true, data: { ...data, confidence: 0.2 } }));
+  assert.match(high, /geolocation/);
+  assert.match(high, /"trust": "tailored"/);
+  assert.doesNotMatch(mid, /geolocation|"US"/);
+  assert.match(mid, /"companyTypeHint": "operator"/);
+  assert.match(low, /"trust": "none"/);
+  assert.doesNotMatch(low, /companyTypeHint/);
+});
+
+test('notInDescription keeps only helper facts the salesperson did not already mention', async () => {
+  const { notInDescription } = await import('../src/prompt.js');
+  const desc = 'A sportsbook operator with high withdrawal volume and frequent KYC tickets';
+  assert.deepEqual(notInDescription(['withdrawals', 'KYC', 'geolocation', 'bet settlement'], desc), ['geolocation', 'bet settlement']);
 });

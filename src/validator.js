@@ -104,9 +104,16 @@ export function validateEmail(email, { recipientName, companyName } = {}) {
   }
   if (!/\bRaphie\b/.test(email)) add('missing_sender', 'Does not mention Raphie.');
 
+  // Soft checks: reported, never a reason to reject.
+  const warnings = BUZZWORDS.filter((w) => new RegExp(`\\b${escapeRegex(w)}`, 'i').test(email)).map((w) => ({
+    rule: 'buzzword',
+    message: `Uses buzzword "${w}".`,
+  }));
+
   return {
     ok: violations.length === 0,
     violations,
+    warnings,
     stats: {
       sentences: sentences.length,
       words: wordsOf(email).length,

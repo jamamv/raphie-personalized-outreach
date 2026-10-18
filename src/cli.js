@@ -1,13 +1,9 @@
 import { parseArgs } from 'node:util';
 import readline from 'node:readline/promises';
-import OpenAI from 'openai';
 import { config } from './config.js';
-import { fetchCompanyAnalysis } from './helper.js';
-import { buildContext } from './context.js';
-import { buildMessages } from './prompt.js';
-import { generateEmail } from './generator.js';
-
-const TONES = ['direct', 'warm'];
+import { TONES, checkInput, startLookup, createEmail } from './core.js';
+import { assessHelper } from './insights.js';
+import { SYSTEM_PROMPT, buildUserMessage } from './prompt.js';
 
 const USAGE = `Usage: raphie-outreach [options]
 
@@ -17,15 +13,17 @@ Prompts for any value not passed as a flag.
   --company <company>    Company name, e.g. "Big Bet Sports"
   --description <text>   Short description of the company
   --tone <direct|warm>   Email tone
-  -v, --verbose          Show helper data, context decisions and validation steps
+  --model <model>        OpenAI model (default: ${config.model})
+  -v, --verbose          Show retries, repairs, and a rejected draft if there is one
   --dry-run              Print the prompt that would be sent, without calling OpenAI
   -h, --help             Show this help
 
-The email is written to stdout. Prompts and diagnostics go to stderr.
-Exit codes: 0 ok, 1 error, 2 email generated but failed validation.`;
+The email is written to stdout, only if it passes every rule.
+Prompts and diagnostics go to stderr.
+Exit codes: 0 ok, 1 error, 2 no email passed the rules.`;
 
 // Prompts and diagnostics go to stderr so stdout contains only the email.
-const err = (msg) => process.stderr.write(`${msg}\n`);
+const err = (msg = '') => process.stderr.write(`${msg}\n`);
 
 async function askRequired(rl, question) {
   for (;;) {
@@ -38,8 +36,8 @@ async function askRequired(rl, question) {
 async function askTone(rl) {
   for (;;) {
     const answer = (await rl.question('Tone, "direct" or "warm" [direct]: ')).trim().toLowerCase();
-    if (!answer || answer === 'd' || answer === '1') return 'direct';
-    if (answer === 'w' || answer === '2') return 'warm';
+    if (!answer || answer === 'd') return 'direct';
+    if (answer === 'w') return 'warm';
     if (TONES.includes(answer)) return answer;
     err('  Please enter "direct" or "warm".');
   }
@@ -56,6 +54,7 @@ export async function run(argv) {
         company: { type: 'string' },
         description: { type: 'string' },
         tone: { type: 'string' },
+        model: { type: 'string', default: config.model },
         verbose: { type: 'boolean', short: 'v', default: false },
         'dry-run': { type: 'boolean', default: false },
         help: { type: 'boolean', short: 'h', default: false },
@@ -65,20 +64,13 @@ export async function run(argv) {
     err(`${e.message}\n\n${USAGE}`);
     return 1;
   }
-
   if (values.help) {
     console.log(USAGE);
     return 0;
   }
 
-  if (values.tone && !TONES.includes(values.tone.toLowerCase())) {
-    err(`Invalid tone "${values.tone}". Use "direct" or "warm".`);
-    return 1;
-  }
-
-  const log = values.verbose ? (m) => err(`[debug] ${m}`) : () => {};
+  const verbose = (m) => values.verbose && err(`  [debug] ${m}`);
   const dryRun = values['dry-run'];
-
   if (!dryRun && !config.openaiApiKey) {
     err('OPENAI_API_KEY is not set. Copy .env.example to .env and add your key.');
     return 1;
@@ -86,73 +78,61 @@ export async function run(argv) {
 
   const needsPrompt = !values.name || !values.company || !values.description || !values.tone;
   const rl = needsPrompt ? readline.createInterface({ input: process.stdin, output: process.stderr }) : null;
+  rl?.on('SIGINT', () => {
+    err('\nCancelled.');
+    process.exit(130);
+  });
 
-  let recipientName, companyName, description, tone, analysisPromise;
+  const input = {};
+  let lookup;
   try {
-    recipientName = values.name?.trim() || (await askRequired(rl, "Recipient's name: "));
-    companyName = values.company?.trim() || (await askRequired(rl, 'Company name: '));
-
-    // Start the (sometimes slow) helper lookup as soon as we have the company
-    // name, so its latency overlaps with the user typing the rest.
-    analysisPromise = fetchCompanyAnalysis(companyName, { ...config, log });
-
-    description = values.description?.trim() || (await askRequired(rl, 'Short company description: '));
-    tone = values.tone?.toLowerCase() || (await askTone(rl));
+    input.recipientName = values.name?.trim() || (await askRequired(rl, "Recipient's name: "));
+    input.companyName = values.company?.trim() || (await askRequired(rl, 'Company name: '));
+    // Start the slow helper lookup now, so it runs while the user types the rest.
+    lookup = startLookup(input.companyName, verbose);
+    input.description = values.description?.trim() || (await askRequired(rl, 'Short company description: '));
+    input.tone = values.tone?.trim().toLowerCase() || (await askTone(rl));
   } finally {
     rl?.close();
   }
 
-  err('\nLooking up company context...');
-  const analysis = await analysisPromise;
-  const context = buildContext({ description, analysis });
-
-  if (analysis) log(`helper response: ${JSON.stringify(analysis)}`);
-  context.notes.forEach((n) => log(`context: ${n}`));
-  err(
-    context.tier === 'high' || context.tier === 'medium'
-      ? `Using company context (${context.tier} confidence, ${analysis.confidence}).`
-      : 'Company context unavailable or low confidence, writing from the description only.',
-  );
-
-  const input = {
-    recipientName,
-    firstName: recipientName.split(/\s+/)[0],
-    companyName,
-    description,
-    tone,
-  };
-
-  if (dryRun) {
-    for (const m of buildMessages(input, context)) {
-      console.log(`===== ${m.role.toUpperCase()} =====\n${m.content}\n`);
-    }
-    return 0;
-  }
-
-  err('Writing email...\n');
-  const client = new OpenAI({ apiKey: config.openaiApiKey });
-  let result;
-  try {
-    result = await generateEmail({
-      client,
-      model: config.model,
-      input,
-      context,
-      maxRevisions: config.maxRevisions,
-      log,
-    });
-  } catch (e) {
-    err(`OpenAI request failed: ${e.message}`);
+  const problems = checkInput(input);
+  if (problems.length) {
+    err(`Invalid input: ${problems.join('; ')}.`);
     return 1;
   }
 
-  console.log(result.email);
-  log(`stats: ${JSON.stringify(result.report.stats)}, attempts: ${result.attempts}`);
+  err('\nLooking up the company...');
+  if (dryRun) {
+    const assessment = assessHelper(await lookup);
+    console.log(`===== SYSTEM (prompts/system.md) =====\n${SYSTEM_PROMPT}\n===== USER =====\n${buildUserMessage(input, assessment)}`);
+    return 0;
+  }
 
-  if (!result.report.ok) {
-    err('\nWarning: this draft still breaks some rules after revisions:');
-    result.report.violations.forEach((v) => err(`  - ${v.message}`));
+  let result;
+  try {
+    result = await createEmail({
+      input,
+      lookup,
+      model: values.model,
+      log: (line) => (/^(Helper|  [✓·✗-] )/.test(line) ? err(line) : verbose(line)),
+    });
+  } catch (e) {
+    err(`\nOpenAI request failed: ${e.message}`);
+    return 1;
+  }
+
+  err(`Writing as: ${result.accountType}. Helper facts used: ${result.helperFactsUsed.join('; ') || 'none'}.`);
+  if (!result.ok) {
+    err(`\nNo email passed every rule after ${result.attempts} attempts:`);
+    result.violations.forEach((v) => err(`  - ${v.message}`));
+    if (values.verbose) err(`\nRejected draft (do not send):\n${result.email}`);
     return 2;
   }
+
+  err('');
+  console.log(result.email);
+  result.warnings.forEach((w) => err(`Note: ${w.message}`));
+  verbose(`${result.attempts} attempt(s), ${result.stats.words} words, longest sentence ${result.stats.longestSentence} words, ${(result.ms / 1000).toFixed(1)}s, ${result.model}`);
   return 0;
 }
