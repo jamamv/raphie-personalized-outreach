@@ -1,0 +1,327 @@
+{
+  "_note": "Real responses captured from the helper endpoint while building this project. Kept verbatim, including the messy ones.",
+  "riverline_operator": {
+    "vertical": "igaming",
+    "companyType": "operator",
+    "operatingRegions": [
+      "US",
+      "CA"
+    ],
+    "supportMotion": "high_volume",
+    "isCryptoRelated": false,
+    "kycAmlIntensity": "high",
+    "likelyTicketDrivers": [
+      "withdrawals",
+      "kyc",
+      "account_access",
+      "promos",
+      "bet_settlement",
+      "payment_methods"
+    ],
+    "complianceThemes": null,
+    "confidence": 0.9580746898910899
+  },
+  "riverline_unclassified": {
+    "_edited": "Observed live; the confidence value was truncated in the capture, so 0.75 is a stand-in.",
+    "vertical": "igaming",
+    "companyType": "insufficient information to determine",
+    "operatingRegions": [
+      "US",
+      "CA"
+    ],
+    "supportMotion": "n/a",
+    "isCryptoRelated": false,
+    "kycAmlIntensity": "high",
+    "likelyTicketDrivers": [
+      "withdrawals",
+      "kyc",
+      "account_access",
+      "promos",
+      "bet_settlements",
+      "payment_methods"
+    ],
+    "complianceThemes": [
+      "responsible_gaming",
+      "aml",
+      "pii",
+      "geofencing",
+      "age_verification",
+      "auditability"
+    ],
+    "confidence": 0.75
+  },
+  "apexpay_platform": {
+    "vertical": "igaming",
+    "companyType": "platform",
+    "operatingRegions": [
+      "US",
+      "EU",
+      "LATAM"
+    ],
+    "supportMotion": "high_volume",
+    "isCryptoRelated": false,
+    "kycAmlIntensity": "high",
+    "likelyTicketDrivers": [
+      "withdrawals",
+      "kyc",
+      "payment_failures",
+      "account_access",
+      "deposits",
+      "promos"
+    ],
+    "complianceThemes": [
+      "aml",
+      "responsible_gaming",
+      "pii",
+      "auditability",
+      "geo_restrictions",
+      "age_verification"
+    ],
+    "confidence": 0.7841381237692626
+  },
+  "apexpay_error_vertical": {
+    "vertical": "error: could not classify company",
+    "companyType": "platform",
+    "operatingRegions": [
+      "US",
+      "EU",
+      "LATAM"
+    ],
+    "supportMotion": "high_volume",
+    "isCryptoRelated": null,
+    "kycAmlIntensity": "n/a",
+    "confidence": 0.709344303440892
+  },
+  "odds_affiliate": {
+    "vertical": "igaming",
+    "companyType": "platform",
+    "operatingRegions": [
+      "EU",
+      "UK",
+      "US",
+      "LATAM",
+      "APAC"
+    ],
+    "supportMotion": "mixed",
+    "isCryptoRelated": null,
+    "kycAmlIntensity": "medium",
+    "likelyTicketDrivers": [
+      "payouts",
+      "tracking",
+      "account_access",
+      "reporting",
+      "commission_disputes"
+    ],
+    "complianceThemes": [
+      "auditability",
+      "responsible_gaming",
+      "affiliate_disclosure",
+      "geo_restrictions"
+    ],
+    "confidence": 0.7871922814202709
+  },
+  "zeta_crypto": {
+    "vertical": "igaming",
+    "companyType": "operator",
+    "operatingRegions": [
+      "INTL",
+      "LATAM",
+      "APAC"
+    ],
+    "supportMotion": "high_volume",
+    "isCryptoRelated": true,
+    "kycAmlIntensity": "high",
+    "likelyTicketDrivers": [
+      "withdrawals",
+      "deposits",
+      "kyc",
+      "account_access",
+      "bonus_disputes",
+      "game_fairness"
+    ],
+    "complianceThemes": [
+      "aml",
+      "kyc",
+      "responsible_gaming",
+      "crypto_regulation",
+      "player_protection",
+      "auditability"
+    ],
+    "confidence": 0.9634113265238891
+  },
+  "zeta_null_drivers": {
+    "vertical": "igaming",
+    "companyType": "operator",
+    "operatingRegions": [
+      "global",
+      "offshore"
+    ],
+    "supportMotion": "high_volume",
+    "isCryptoRelated": true,
+    "kycAmlIntensity": "high",
+    "likelyTicketDrivers": null,
+    "complianceThemes": [
+      "aml",
+      "kyc",
+      "responsible_gaming",
+      "crypto_compliance",
+      "licensing",
+      "pii"
+    ],
+    "confidence": 0.7508279748490032
+  },
+  "acme_low": {
+    "vertical": "manufacturing",
+    "companyType": "manufacturer",
+    "operatingRegions": [
+      "US",
+      "EU"
+    ],
+    "supportMotion": "mixed",
+    "isCryptoRelated": false,
+    "kycAmlIntensity": "low",
+    "likelyTicketDrivers": [
+      "order_status",
+      "product_info",
+      "shipping",
+      "returns"
+    ],
+    "complianceThemes": [
+      "data_privacy",
+      "product_safety"
+    ],
+    "confidence": 0.21523053584180385
+  },
+  "acme_vendor_low": {
+    "vertical": "manufacturing",
+    "companyType": "vendor",
+    "operatingRegions": [
+      "US",
+      "EU"
+    ],
+    "supportMotion": "mixed",
+    "isCryptoRelated": false,
+    "kycAmlIntensity": "low",
+    "confidence": 0.3161931182459913
+  },
+  "verifynow_error_type": {
+    "_edited": "Observed live with companyType \"error: could not classify company\" at confidence 0.99; arrays copied from the verifynow_vendor capture.",
+    "vertical": "fintech",
+    "companyType": "error: could not classify company",
+    "operatingRegions": [
+      "US",
+      "EU"
+    ],
+    "supportMotion": "white_glove",
+    "isCryptoRelated": false,
+    "kycAmlIntensity": "high",
+    "likelyTicketDrivers": [
+      "kyc",
+      "account_access",
+      "verification_delays",
+      "document_review",
+      "api_integration"
+    ],
+    "complianceThemes": [
+      "pii",
+      "auditability",
+      "aml",
+      "data_retention",
+      "gdpr"
+    ],
+    "confidence": 0.99
+  },
+  "riverline_elevated": {
+    "vertical": "igaming",
+    "companyType": "operator",
+    "operatingRegions": [
+      "US",
+      "CA"
+    ],
+    "supportMotion": "high_volume",
+    "isCryptoRelated": false,
+    "kycAmlIntensity": "elevated",
+    "confidence": 0.7344125499408303
+  },
+  "draftkings_full": {
+    "vertical": "igaming",
+    "companyType": "operator",
+    "operatingRegions": [
+      "US",
+      "CA"
+    ],
+    "supportMotion": "high_volume",
+    "isCryptoRelated": false,
+    "kycAmlIntensity": "high",
+    "likelyTicketDrivers": [
+      "withdrawals",
+      "kyc",
+      "account_access",
+      "promos",
+      "deposits",
+      "geolocation",
+      "payment_methods"
+    ],
+    "complianceThemes": [
+      "responsible_gaming",
+      "pii",
+      "auditability",
+      "aml",
+      "age_verification",
+      "geo_compliance",
+      "licensing"
+    ],
+    "confidence": 1
+  },
+  "error_503_body": {
+    "error": "Failed to analyze company go-to-market hints",
+    "message": "API service temporarily unavailable"
+  },
+  "error_400_body": {
+    "success": false,
+    "error": {
+      "issues": [
+        {
+          "code": "too_small",
+          "minimum": 1,
+          "type": "string",
+          "inclusive": true,
+          "exact": false,
+          "message": "Field \"name\" is required and cannot be empty",
+          "path": [
+            "name"
+          ]
+        }
+      ],
+      "name": "ZodError"
+    }
+  },
+  "verifynow_vendor": {
+    "vertical": "fintech",
+    "companyType": "vendor",
+    "operatingRegions": [
+      "US",
+      "EU",
+      "UK",
+      "APAC"
+    ],
+    "supportMotion": "white_glove",
+    "isCryptoRelated": false,
+    "kycAmlIntensity": "high",
+    "likelyTicketDrivers": [
+      "kyc",
+      "account_access",
+      "verification_delays",
+      "document_review",
+      "api_integration"
+    ],
+    "complianceThemes": [
+      "pii",
+      "auditability",
+      "aml",
+      "data_retention",
+      "gdpr"
+    ],
+    "confidence": 0.9719331221601044
+  }
+}
