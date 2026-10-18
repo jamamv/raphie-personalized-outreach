@@ -54,6 +54,29 @@ export function firstNameOf(fullName = '') {
   return first === first.toLowerCase() ? first.charAt(0).toUpperCase() + first.slice(1) : first;
 }
 
+export const SUBJECT_MAX_CHARS = 60;
+// Industry acronyms that are fine in capitals (3-letter ones like KYC never trigger the check).
+const ACRONYMS = new Set(['GDPR', 'LATAM', 'APAC', 'EMEA', 'MENA', 'NFL', 'NBA', 'UEFA', 'FIFA']);
+
+/** Rules for a subject line. Returns a list of problems (empty when it passes). */
+export function checkSubject(subject) {
+  const s = String(subject ?? '').trim();
+  if (!s) return ['Subject is empty.'];
+  const problems = [];
+  const words = s.split(/\s+/).length;
+  if (words < 2 || words > 8) problems.push(`Subject has ${words} words (use 2 to 8).`);
+  if (s.length > SUBJECT_MAX_CHARS) problems.push(`Subject has ${s.length} characters (max ${SUBJECT_MAX_CHARS}).`);
+  if (/\n/.test(s)) problems.push('Subject must be one line.');
+  if (/!/.test(s)) problems.push('Subject has an exclamation mark.');
+  if (/\u2014|\u2013|--/.test(s)) problems.push('Subject has a dash.');
+  if (/fantastic/i.test(s)) problems.push('Subject uses the word "fantastic".');
+  if (/^\s*(re|fwd?)\s*:/i.test(s)) problems.push('Subject fakes a reply or forward ("Re:"/"Fwd:").');
+  if (/\p{Extended_Pictographic}/u.test(s)) problems.push('Subject has an emoji.');
+  const shouting = (s.match(/\b[A-Z]{4,}\b/g) ?? []).filter((w) => !ACRONYMS.has(w));
+  if (shouting.length) problems.push(`Subject shouts in capitals ("${shouting[0]}").`);
+  return problems;
+}
+
 export function firstWord(sentence) {
   const match = sentence.match(/[\p{L}\p{N}][\p{L}\p{N}'\u2019-]*/u);
   return match ? match[0].toLowerCase().replace(/\u2019/g, "'") : '';

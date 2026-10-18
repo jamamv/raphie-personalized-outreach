@@ -25,6 +25,7 @@ export function checkFeedback(body) {
       copied: body.copied === true,
       editRatio,
       finalEmail: typeof body.finalEmail === 'string' ? body.finalEmail.slice(0, MAX_EMAIL) : null,
+      finalSubject: typeof body.finalSubject === 'string' ? body.finalSubject.slice(0, 200) : null,
     },
   };
 }

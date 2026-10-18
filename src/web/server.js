@@ -5,13 +5,13 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { config } from '../config.js';
-import { handleFeedback, handleGenerate, handleLookup, sendJson } from './handlers.js';
+import { handleFeedback, handleGenerate, handleLookup, handleSubject, sendJson } from './handlers.js';
 
 const STATIC = {
   '/': { file: new URL('./index.html', import.meta.url), type: 'text/html' },
   '/validator.js': { file: new URL('../validator.js', import.meta.url), type: 'text/javascript' },
 };
-const API = { '/api/lookup': handleLookup, '/api/generate': handleGenerate, '/api/feedback': handleFeedback };
+const API = { '/api/lookup': handleLookup, '/api/generate': handleGenerate, '/api/subject': handleSubject, '/api/feedback': handleFeedback };
 
 export function createApp() {
   return createServer(async (req, res) => {

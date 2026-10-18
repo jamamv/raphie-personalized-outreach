@@ -57,6 +57,10 @@
   .chip { font-size: 13px; border-radius: 999px; padding: 3px 10px; background: var(--soft); }
   .chip.ok { color: var(--ok); }
   .chip.bad { color: var(--bad); }
+  .subject-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .subject-row label { margin: 0; font-size: 13px; color: var(--muted); font-weight: 600; }
+  #subject { flex: 1; min-width: 180px; font-weight: 600; background: var(--surface); }
+  .subject-problems { color: var(--bad); font-size: 13px; margin: -4px 0 8px; }
   #email { min-height: 320px; line-height: 1.6; padding: 14px 16px; background: var(--surface); }
   .problems { margin: 8px 0 0; padding-left: 18px; color: var(--bad); font-size: 14px; }
   .meta { color: var(--muted); font-size: 13px; margin-top: 12px; }
@@ -120,6 +124,13 @@
         <h2 style="margin:0">Your email <span class="help">(editable)</span></h2>
         <span class="chip" id="ruleChip"></span>
       </div>
+      <div class="subject-row">
+        <label for="subject">Subject</label>
+        <input type="text" id="subject" maxlength="200" spellcheck="true">
+        <button type="button" class="ghost" id="copySubject">Copy</button>
+        <button type="button" class="ghost" id="newSubject">New subject</button>
+      </div>
+      <div class="subject-problems" id="subjectProblems"></div>
       <textarea id="email" spellcheck="true" aria-label="Email text, editable"></textarea>
       <ul class="problems" id="problems"></ul>
       <div class="row">
@@ -150,7 +161,7 @@
 </main>
 
 <script type="module">
-import { validateEmail } from '/validator.js';
+import { validateEmail, checkSubject } from '/validator.js';
 
 const $ = (id) => document.getElementById(id);
 const form = $('form');
@@ -276,8 +287,10 @@ function showError(text) {
 function renderEmail(r, inputs) {
   current = { runId: r.runId, original: r.email, inputs, copied: false };
   $('email').value = r.email;
+  $('subject').value = r.subject ?? '';
   autosize();
   checkRules();
+  checkSubjectRules();
   const facts = r.helperFactsUsed?.length ? r.helperFactsUsed.join('; ') : 'none';
   $('meta').textContent = `Written as: ${r.accountType} · helper facts used: ${facts} · ${r.model} · ${r.seconds}s`;
   $('why').textContent = [...r.explanation, ...r.warnings.map((w) => `Note: ${w}`)].join('\n');
@@ -296,6 +309,11 @@ function checkRules() {
   $('problems').replaceChildren(...violations.map((v) => Object.assign(document.createElement('li'), { textContent: v.message })));
   $('copy').textContent = ok ? 'Copy' : 'Copy anyway';
   $('undo').disabled = text === current.original;
+}
+
+function checkSubjectRules() {
+  const problems = checkSubject($('subject').value);
+  $('subjectProblems').textContent = problems.join(' ');
 }
 
 function autosize() {
@@ -319,19 +337,40 @@ function editRatio(before, after) {
 }
 
 $('email').addEventListener('input', () => { autosize(); checkRules(); });
-$('undo').addEventListener('click', () => { $('email').value = current.original; autosize(); checkRules(); });
-$('copy').addEventListener('click', async () => {
-  const button = $('copy');
+$('subject').addEventListener('input', checkSubjectRules);
+
+async function copyText(button, text, field) {
   const label = button.textContent;
   try {
-    await navigator.clipboard.writeText($('email').value);
-    current.copied = true;
+    await navigator.clipboard.writeText(text);
     button.textContent = 'Copied';
   } catch {
-    $('email').select();
+    field.select();
     button.textContent = 'Press ⌘/Ctrl + C';
   }
   setTimeout(() => { button.textContent = label; }, 1500);
+}
+
+$('copySubject').addEventListener('click', () => copyText($('copySubject'), $('subject').value, $('subject')));
+$('newSubject').addEventListener('click', async () => {
+  if (!current) return;
+  const button = $('newSubject');
+  button.disabled = true;
+  button.textContent = 'Writing...';
+  try {
+    const r = await api('/api/subject', { ...current.inputs, email: $('email').value });
+    $('subject').value = r.subject;
+    checkSubjectRules();
+  } catch (e) {
+    $('subjectProblems').textContent = `Could not get a new subject: ${e.message}`;
+  }
+  button.disabled = false;
+  button.textContent = 'New subject';
+});
+$('undo').addEventListener('click', () => { $('email').value = current.original; autosize(); checkRules(); });
+$('copy').addEventListener('click', () => {
+  current.copied = true;
+  copyText($('copy'), $('email').value, $('email'));
 });
 
 // --- Feedback ------------------------------------------------------------------
@@ -363,6 +402,7 @@ $('sendFeedback').addEventListener('click', async () => {
       copied: current.copied,
       editRatio: editRatio(current.original, $('email').value),
       finalEmail: $('email').value,
+      finalSubject: $('subject').value,
     });
     $('feedbackSaved').textContent = 'Thanks, saved.';
   } catch (e) {

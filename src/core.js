@@ -8,6 +8,7 @@ import { config } from './config.js';
 import { fetchCompanyAnalysis } from './helper.js';
 import { assessHelper, describeAssessment } from './insights.js';
 import { generateEmail } from './generator.js';
+import { generateSubject } from './subject.js';
 import { appendRunLog } from './runlog.js';
 
 export const TONES = ['direct', 'warm'];
@@ -39,6 +40,11 @@ export function routeModel(tier) {
     : { model: config.lightModel, reasoningEffort: config.lightReasoningEffort };
 }
 
+/** Writes a subject line for a finished email, always on the light model. */
+export function createSubject({ input, email, log = () => {} }) {
+  return generateSubject({ client: getClient(), model: config.lightModel, effort: config.lightReasoningEffort, input, email, log });
+}
+
 /**
  * @param input  { recipientName, companyName, description, tone }
  * @param lookup promise from startLookup (or a ready helper result)
@@ -55,8 +61,12 @@ export async function createEmail({ input, lookup, model, reasoningEffort, log =
   ({ model, reasoningEffort } = route);
 
   const result = await generateEmail({ client: getClient(), model, input, assessment, maxRepairs: config.maxRepairs, reasoningEffort, log });
+  // The subject is only written for an email that passed; it never blocks the email.
+  const subject = result.ok ? await createSubject({ input, email: result.email, log }) : { subject: null, usage: null };
   const run = {
     ...result,
+    subject: subject.subject,
+    subjectUsage: subject.usage,
     runId: randomUUID(),
     model,
     ms: Date.now() - started,
@@ -85,6 +95,8 @@ export async function createEmail({ input, lookup, model, reasoningEffort, log =
       violations: result.violations.map((v) => v.rule),
       warnings: result.warnings.map((w) => w.message),
       email: result.email,
+      subject: subject.subject,
+      subjectUsage: subject.usage,
       ms: run.ms,
     });
   }

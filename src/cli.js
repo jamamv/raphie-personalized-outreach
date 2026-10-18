@@ -145,7 +145,7 @@ export async function run(argv) {
   }
 
   err('');
-  console.log(result.email);
+  console.log(`Subject: ${result.subject}\n\n${result.email}`);
   result.warnings.forEach((w) => err(`Note: ${w.message}`));
   verbose(`${result.attempts} attempt(s), ${result.stats.words} words, longest sentence ${result.stats.longestSentence} words, ${(result.ms / 1000).toFixed(1)}s, ${result.model}, ${result.usage.input} in / ${result.usage.output} out tokens`);
   return 0;

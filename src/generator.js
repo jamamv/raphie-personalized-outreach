@@ -18,16 +18,17 @@ import { validateEmail } from './validator.js';
 // Reasoning models (gpt-5, o-series) take a reasoning effort instead of a temperature.
 const isReasoningModel = (model) => /^(gpt-5|o\d)/.test(model);
 
-async function complete(client, model, input, effort) {
+/** One structured-output call to the Responses API. Shared by the email and the subject line. */
+export async function callModel(client, { model, effort, instructions, input, schema, name, temperature = 0.7 }) {
   const request = {
     model,
     // Static instructions first, data last: OpenAI caches the repeated prefix,
-    // and the cache key keeps every request on the same cache.
-    instructions: SYSTEM_PROMPT,
+    // and the cache key keeps every request of this kind on the same cache.
+    instructions,
     input,
-    prompt_cache_key: 'raphie-outreach',
-    text: { format: { type: 'json_schema', name: 'outreach_email', schema: EMAIL_SCHEMA, strict: true } },
-    ...(isReasoningModel(model) ? { reasoning: { effort } } : { temperature: 0.7 }),
+    prompt_cache_key: `raphie-${name}`,
+    text: { format: { type: 'json_schema', name, schema, strict: true } },
+    ...(isReasoningModel(model) ? { reasoning: { effort } } : { temperature }),
   };
   const res = await client.responses.create(request);
   const text = res.output_text;
@@ -38,8 +39,11 @@ async function complete(client, model, input, effort) {
   }
 }
 
-// Token usage summed over the first draft and any repairs.
-function addUsage(total, usage = {}) {
+export const newUsage = () => ({ input: 0, cachedInput: 0, output: 0, reasoning: 0, calls: 0 });
+
+// Token usage summed over several calls (first draft and any repairs).
+export function addUsage(total, usage = {}) {
+  total.calls += 1;
   total.input += usage.input_tokens ?? 0;
   total.cachedInput += usage.input_tokens_details?.cached_tokens ?? 0;
   total.output += usage.output_tokens ?? 0;
@@ -49,11 +53,17 @@ function addUsage(total, usage = {}) {
 export async function generateEmail({ client, model, input, assessment, maxRepairs = 2, reasoningEffort = 'low', log = () => {} }) {
   const messages = [{ role: 'user', content: buildUserMessage(input, assessment) }];
   const required = { recipientName: input.recipientName, companyName: input.companyName };
-  const usage = { input: 0, cachedInput: 0, output: 0, reasoning: 0, calls: 0 };
+  const usage = newUsage();
 
   for (let attempt = 1; ; attempt++) {
-    const { text, json, usage: callUsage } = await complete(client, model, messages, reasoningEffort);
-    usage.calls += 1;
+    const { text, json, usage: callUsage } = await callModel(client, {
+      model,
+      effort: reasoningEffort,
+      instructions: SYSTEM_PROMPT,
+      input: messages,
+      schema: EMAIL_SCHEMA,
+      name: 'outreach_email',
+    });
     addUsage(usage, callUsage);
     const paragraphs = json.paragraphs.map((p) => {
       const { text: clean, fixes } = sanitize(p);

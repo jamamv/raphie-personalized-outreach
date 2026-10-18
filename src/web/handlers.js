@@ -9,13 +9,14 @@
  *        the helper is not called twice. It is re-checked by the same per-field
  *        allow-lists as a live response, so a client cannot inject anything a
  *        helper response could not.
+ *   POST /api/subject  { ...inputs, email }            -> a new subject line
  *   POST /api/feedback { runId, score, ... }           -> feedback log
  *
  * If ACCESS_CODE is set, every request needs a matching x-access-code header.
  */
 import { timingSafeEqual } from 'node:crypto';
 import { config } from '../config.js';
-import { checkInput, createEmail, startLookup } from '../core.js';
+import { checkInput, createEmail, createSubject, startLookup } from '../core.js';
 import { assessHelper, describeAssessment } from '../insights.js';
 import { checkFeedback } from '../feedback.js';
 import { appendRunLog } from '../runlog.js';
@@ -71,6 +72,13 @@ const endpoint = (handler) => async (req, res) => {
   }
 };
 
+const inputFrom = (body) => ({
+  recipientName: String(body.recipientName ?? '').trim(),
+  companyName: String(body.companyName ?? '').trim(),
+  description: String(body.description ?? '').trim(),
+  tone: String(body.tone ?? '').trim().toLowerCase(),
+});
+
 /** Accepts a lookup result passed back by the page, only for the same company. */
 export function lookupFromBody(body, companyName) {
   const l = body?.lookup;
@@ -94,12 +102,7 @@ export const handleLookup = endpoint(async (body, res) => {
 });
 
 export const handleGenerate = endpoint(async (body, res) => {
-  const input = {
-    recipientName: String(body.recipientName ?? '').trim(),
-    companyName: String(body.companyName ?? '').trim(),
-    description: String(body.description ?? '').trim(),
-    tone: String(body.tone ?? '').trim().toLowerCase(),
-  };
+  const input = inputFrom(body);
   const problems = checkInput(input);
   if (problems.length) return sendJson(res, 400, { error: `Invalid input: ${problems.join('; ')}.` });
 
@@ -109,6 +112,7 @@ export const handleGenerate = endpoint(async (body, res) => {
     ok: r.ok,
     runId: r.runId,
     email: r.ok ? r.email : null, // a failing draft is never shown as an email
+    subject: r.subject,
     violations: r.ok ? [] : r.violations.map((v) => v.message),
     warnings: r.warnings.map((w) => w.message),
     explanation: r.explanation,
@@ -119,6 +123,16 @@ export const handleGenerate = endpoint(async (body, res) => {
     seconds: Number((r.ms / 1000).toFixed(1)),
     model: r.model,
   });
+});
+
+export const handleSubject = endpoint(async (body, res) => {
+  const input = inputFrom(body);
+  const problems = checkInput(input);
+  const email = typeof body.email === 'string' ? body.email.trim() : '';
+  if (!email || email.length > 5000) problems.push('email is required (max 5000 characters)');
+  if (problems.length) return sendJson(res, 400, { error: `Invalid input: ${problems.join('; ')}.` });
+  const { subject, fallback } = await createSubject({ input, email });
+  sendJson(res, 200, { subject, fallback });
 });
 
 export const handleFeedback = endpoint(async (body, res) => {
