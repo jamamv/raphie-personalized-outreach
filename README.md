@@ -2,7 +2,7 @@
 
 Writes cold outreach emails for Raphie's sales team: personalised to the prospect's company, tailored with go-to-market data when that data is trustworthy, and **only shown once code has verified every one of Raphie's writing rules**. Built for the Raphie coding challenge as a CLI (the brief's requirement) and a web app for salespeople, both on one shared core.
 
-**Live demo:** https://raphie-personalized-outreach.vercel.app/ (the interface and company lookup work; generating emails needs an OpenAI key to be added in Vercel, see [Deploy to Vercel](#deploy-to-vercel)).
+**Live demo:** https://raphie-personalized-outreach.vercel.app/ (the interface and company lookup work; generating emails needs an OpenAI key to be added in Vercel, see [Environment variables](#environment-variables)).
 
 <img width="1128" height="661" alt="image" src="https://github.com/user-attachments/assets/dd716aa6-f343-4ffb-9b0d-c32e050b8338" />
 
@@ -23,32 +23,34 @@ npm test                      # 53 unit tests, no network or key needed
 npm run eval -- --reps 2      # live eval against OpenAI (see Evaluation)
 ```
 
+### Environment variables
+
+| Variable | Needed? | What it does |
+|---|---|---|
+| `OPENAI_API_KEY` | Required | Your OpenAI key. Locally it goes in `.env`; on Vercel, add it under Project → Settings → Environment Variables. |
+| `ACCESS_CODE` | Optional, recommended for a public link | Any phrase. The web page asks for it once, so strangers can't spend your key. |
+
+Everything else (models, retries, log files) has working defaults, listed in `.env.example`.
+
 CLI flags skip the prompts: `--name`, `--company`, `--description`, `--tone direct|warm`, `--model`, `-v` (verbose), `--dry-run` (print the exact prompt without calling OpenAI).
 
 The subject line and email go to **stdout only if the email passed every rule**. Everything else (questions, the helper report, warnings) goes to stderr, so `npm start > email.txt` gives a clean file. Exit codes: `0` ok, `1` error, `2` no draft passed the rules (nothing is printed as an email).
 
 ## What was built
 
-**The product evolved in three steps, each a product decision.**
-
-1. **CLI first**, as the brief asked: four questions, then the subject and email. It is still the core (`npm start`).
-2. **Then a chat interface**, because salespeople should not have to work in a terminal.
-3. **Then a form.** Using the chat showed it did not fit how a salesperson works: change one field and regenerate, edit a sentence before sending, copy with one click. A chat locks every answer into its history, and since the questions were always the same four, it was really a form dressed up as a chat. That hidden state also caused a real bug (an old "Regenerate" button ran with cleared answers). The form removed both problems.
+**The product evolved in three steps.**
+1. **CLI first**, as the brief asked. It is still the core (`npm start`).
+2. **Then a chat**, because salespeople should not have to work in a terminal.
+3. **Then a form.** Salespeople need to change one field and regenerate, edit before sending, and copy with one click. A chat locks answers into its history, and its hidden state caused a real bug (an old "Regenerate" button ran with cleared answers). The form fixed both.
 
 **What a salesperson gets:**
-- **An email they can trust to follow the rules.** Every email shown passes all six of Raphie's writing rules, checked by code. Edits are checked live with the same code.
-- **A subject line** written to match the email, editable and rerollable on its own.
-- **Visible reasoning.** Before generating, the page shows what the company lookup found and how confident it is; "Why this email" lists every field used, withheld or dropped, and why.
-- **One-click copy** for the subject and the email, regenerate, and undo for edits.
-- **A 1 to 5 feedback score** with a comment, plus whether the email was copied and how much was edited, so the team learns what salespeople actually find useful.
+* **Emails that follow the rules.** Every email shown passes all six of Raphie's rules, checked by code, and edits are checked live by the same code.
+* **A subject line** that matches the email, editable and rerollable on its own.
+* **Visible reasoning:** the lookup's confidence before generating, and "Why this email" listing every field used, withheld or dropped.
+* **One-click copy**, regenerate, and undo for edits.
+* **A 1 to 5 feedback score** with a comment, plus whether the email was copied and how much was edited.
 
-**Web UI details.** A single form (recipient, company, description, tone) with the result beside it.
-
-- **The company lookup starts when you leave the company field**, and the page shows what was found before you generate ("Company data found (confidence 0.83): the email will be tailored", or "unreliable: writing from your description").
-- **The email is editable.** Edits are checked live with the same `validator.js` the server uses (the page loads it directly), so a salesperson cannot unknowingly add an em dash (macOS turns `--` into one) or a 31-word sentence. Copy still works, labelled "Copy anyway", because the salesperson has the final say. "Undo my edits" restores the original.
-- **Feedback.** Each email can be scored 1 to 5 ("Unusable" to "Send as is") with an optional comment. The page also records whether it was copied and what share of words were changed, which is an honest signal even when nobody leaves a score. `npm run feedback` summarises it: average score, share of 4s and 5s, how often emails are edited, and scores by tone, confidence tier and model.
-- **No hidden state.** The form is the only source of inputs, and stale responses are ignored, so an old button can never act on cleared data. (The first, chat-style version had exactly that bug.)
-- **A stateless API.** `/api/lookup` returns the helper result, and the page passes it back to `/api/generate`, so the helper is called once and nothing is kept in server memory. That is what lets the same code run as serverless functions. The passed-back result goes through the same per-field allow-lists as a live helper response, so a client cannot inject anything a helper response could not.
+**Stateless API:** the page passes the lookup result back when generating, so the helper is called once and the same code runs as serverless functions. Passed-back data goes through the same field checks as a live response.
 
 ## How it works
 
@@ -98,68 +100,34 @@ flowchart TD
 
 ## Error scenarios
 
-What happens when something goes wrong, and what the user sees. Messages are quoted from the code.
-
-### The salesperson's input
+**The salesperson's input**
 
 | Scenario | What happens |
 |---|---|
-| A field is left empty | CLI asks again: *"This field is required."* The web Generate button stays disabled (*"Please fill in every field."*). The API returns 400: *"recipientName is required"*. |
-| Tone is not direct or warm | CLI asks again: *"Please enter "direct" or "warm"."* (Enter alone means direct; `d` and `w` work.) API: 400. |
-| Text too long (name 100, company 120, description 600 characters) | 400: *"description is longer than 600 characters"*. |
-| Name typed with a title or in lowercase | Handled, not an error: "Dr. Jane Doe" and "jane doe" both become "Hi Jane,". Names in any alphabet work (José, Łukasz). |
-| No OpenAI key | CLI and web server stop at start: *"OPENAI_API_KEY is not set. Copy .env.example to .env and add your key."* |
-| Wrong or missing access code (when `ACCESS_CODE` is set) | 401. The page shows an access code field: *"That access code is not right."* |
-| Malformed API request (not JSON, or JSON that is not an object) | Always a 400 (*"Invalid JSON"*, or the missing-field message), never a crash. |
+| A field is left empty | CLI asks again (*"This field is required."*); the web Generate button stays disabled; the API returns 400. |
+| Tone is not direct or warm | CLI asks again (*"Please enter "direct" or "warm"."*); the API returns 400. |
+| Wrong or missing access code (when `ACCESS_CODE` is set) | 401, and the page asks for the code: *"That access code is not right."* |
 
-### The company lookup
-
-The lookup improves the email but can never block it.
+**The company lookup improves the email but never blocks it.**
 
 | Scenario | What happens |
 |---|---|
-| 503, 429 or another 5xx | Retried quickly, up to 4 attempts. |
-| Slow answer or a hang (including a reply that stalls halfway) | Waited on for up to 15s, never cancelled and retried. Overall budget 20s. |
-| Every attempt fails | The email is written from the description. The page shows *"Company lookup unavailable: writing from your description."* |
-| Confidence below 0.40, or missing | Helper ignored: *"Company data is unreliable (confidence 0.22): writing from your description."* |
-| A junk field, even at high confidence (`"error: could not classify company"`, `"n/a"`, `"INTL"`) | That field alone is dropped, and "Why this email" shows it with a ✗ and the reason. Other valid fields are still used. |
-| Helper contradicts the description | The description wins. The model reports the company type it chose, which is visible under the email. |
+| 503s, slow answers or hangs | Fast failures are retried up to 4 times; slow ones get up to 15s, within a 20s budget. |
+| Every attempt fails | Written from the description: *"Company lookup unavailable: writing from your description."* |
+| Confidence below 0.40 | Helper ignored: *"Company data is unreliable (confidence 0.22): writing from your description."* |
+| A junk field, even at high confidence | Only that field is dropped, shown with a ✗ in "Why this email". |
 
-### The model's draft
+**The draft.** Hard bans are fixed in code; every other rule failure goes back to the model with the exact problem, at most twice (see [the rules](#raphies-six-rules)). If it still fails, **nothing is shown as an email**: the CLI lists the problems and exits with code 2, and the web page shows them with a Try again button. OpenAI errors are retried twice, then reported the same way.
 
-Every draft goes through the checker. Hard bans are fixed in code without another model call. Everything else goes back to the model with the exact problem, at most twice.
+**The subject** falls back to "Support at {company}" if it fails its rules twice, so it never blocks the email.
 
-| Problem in the draft | Message sent back to the model | Fixed by |
-|---|---|---|
-| Em dash, or spaced ` – ` / ` -- ` | *"Contains an em dash. Use a comma or a period instead."* | Code (replaced with a comma) |
-| Sentence starts with Furthermore / Additionally | *"Sentence starts with "additionally": ..."* | Code (word removed) |
-| The word "fantastic" | *"Uses the word "fantastic"."* | Code (becomes "great") |
-| More than one `!` | *"Has 2 exclamation marks (max 1)."* | Code (extras become periods) |
-| Two sentences in a row start with the same word | *"Consecutive sentences both start with "we": "..." / "..."* | Model rewrite |
-| A sentence over 30 words | *"Sentence has 34 words (max 30): "..."* | Model rewrite |
-| **Recipient's name missing** (the first name typed, after titles) | *"Does not address the recipient by name ("Jane")."* | Model rewrite (the greeting is built by code, so in practice this cannot happen) |
-| **Company name missing** (as typed, any case) | *"Does not mention the company name "Riverline Sportsbook"."* | Model rewrite |
-| **No call request**: no `?`, or none of call / chat / conversation / meet / meeting / talk | *"Missing a question suggesting a short call or meeting."* | Model rewrite |
-| "Raphie" missing | *"Does not mention Raphie."* | Model rewrite (the sign-off always includes it) |
-| A buzzword (leverage, seamless, unlock...) | Not sent back: shown as a note, since it is style guidance, not one of the six rules | Salesperson's call |
-| **Still failing after 2 repairs** | Nothing is shown as an email. CLI: *"No email passed every rule after 3 attempts:"* plus the problems, exit code 2 (the draft only with `-v`). Web: *"No version passed every writing rule after 3 attempts, so nothing is shown."* with a Try again button. | |
-| OpenAI error or timeout | The SDK retries twice (60s timeout). CLI: *"OpenAI request failed: ..."* with exit code 1. Web: *"Sorry, that failed: ..."* with Try again. | |
-
-### The subject line
+**The salesperson's edits (web UI)**
 
 | Scenario | What happens |
 |---|---|
-| Subject breaks a rule (too long, `!`, dash, emoji, "Re:", capitals) | Sent back once with the problems, e.g. *"Subject shouts in capitals ("FREE")."* |
-| Still failing, or the call errors | Plain fallback: "Support at {company}". The subject never blocks the email. |
-| "New subject" fails in the web UI | *"Could not get a new subject: ..."*. The current subject is kept. |
-
-### The salesperson's edits (web UI)
-
-| Scenario | What happens |
-|---|---|
-| An edit breaks a rule (adds an em dash, a long sentence, removes the name) | Flagged live with the same checker: a red *"✗ 2 rule problems"* badge with the list. Copy becomes **"Copy anyway"**, since the salesperson has the final say. "Undo my edits" restores the original. |
+| An edit breaks a rule | Flagged live: a red *"✗ 2 rule problems"* badge with the list. Copy becomes **"Copy anyway"**, and "Undo my edits" restores the original. |
 | A subject edit breaks a rule | The problem appears under the subject as you type. |
-| Clicking an old button after Clear | Ignored. The form is the only source of inputs, and stale responses are dropped. |
+| An old button clicked after Clear | Ignored. Stale responses are dropped. |
 
 ## Key decisions
 
@@ -362,37 +330,9 @@ Best,
 Raphie
 ```
 
-## Deploy to Vercel
-
-The repo is ready to deploy as is: static page plus one serverless function per endpoint.
-
-1. On [vercel.com](https://vercel.com), choose **Add New → Project** and import this GitHub repo. Leave the framework preset as **Other**; `vercel.json` sets the build.
-2. Under **Environment Variables**, add:
-   - `OPENAI_API_KEY`: your key.
-   - `ACCESS_CODE` (strongly recommended): any phrase. Without it, anyone with the URL can generate emails on your OpenAI bill. With it, the page asks for the code once and remembers it in that browser.
-3. Click **Deploy**.
-
-On Vercel the disk is temporary, so `runs.jsonl` and `feedback.jsonl` are written to Vercel's **Logs** tab instead (one JSON line each, `"type": "run"` or `"type": "feedback"`). For permanent feedback storage, the next step would be a small database such as Vercel Postgres or Upstash Redis. Functions may run up to 60 seconds (`vercel.json`), enough for a slow helper lookup plus generation.
-
 ## Run log
 
 Every CLI or web run appends one line to `runs.jsonl` (gitignored), with a `runId` that feedback in `feedback.jsonl` refers to: inputs, the raw helper response, tier, field report, model, token usage, company type, whether it passed, repairs, warnings, the subject, the email and timing. Use it to compare runs (same company, other tone or model) and to review real confidence scores over time. Set `RUN_LOG=off` to disable it.
-
-## Configuration
-
-All settings are optional except the key (see `.env.example`): `OPENAI_API_KEY`, `OPENAI_MODEL` and `OPENAI_REASONING_EFFORT` (tailored emails: `gpt-5.5`, `low`), `OPENAI_LIGHT_MODEL` and `OPENAI_LIGHT_REASONING_EFFORT` (all other emails: `gpt-5.4-mini`, `none`), `MAX_REPAIRS` (2), `HELPER_BUDGET_MS` (20000), `RUN_LOG` (`runs.jsonl`, or `console` on Vercel), `FEEDBACK_LOG` (`feedback.jsonl`, or `console` on Vercel), `ACCESS_CODE` (unset: no code needed), `PORT` (3000).
-
-## Known gaps
-
-- **The live demo cannot generate emails yet.** The temporary challenge key is deliberately not on a public URL; adding a key (and an access code) in Vercel is a two-minute change.
-- **Feedback and run logs are not permanent on Vercel.** They go to Vercel's Logs tab; keeping them needs a small database.
-- **Repetition across companies went up** (shared 3-word phrases rose from 13 to 27), mostly from the house voice in Alex's examples. Each recipient sees only their own email, but it is the next thing to improve.
-- **Tailoring is good, not perfect.** On the shipped setup, facts only the helper knows reached 4 of 6 high-confidence emails (0 of 6 leaked at low confidence). The cheap model alone managed 1 of 6.
-- **Thresholds come from about 45 live calls**, not from per-field ground truth.
-- **gpt-5.5 showed no prompt cache hits** in these runs, so its input cost is not discounted.
-- **Access control is a single shared code**, with no per-user sign-in, rate limiting or audit trail.
-- **`runs.jsonl` keeps names and emails** with no retention policy, which matters for GDPR in an EU/UK-heavy industry.
-- **Names are taken from the first word after a title**, so names written family-name first get the wrong greeting.
 
 ## What's next
 
@@ -406,33 +346,20 @@ All settings are optional except the key (see `.env.example`): `OPENAI_API_KEY`,
 
 ### Roadmap: from drafting emails to sending them
 
-Today a person reviews every email before it goes out. The natural next step is to let the tool send, but only as fast as the evidence allows. Each stage is unlocked by data from the previous one, not by a date.
+Today a person reviews every email. The tool should earn the right to send, one stage at a time, unlocked by data rather than dates.
 
 | Stage | What it adds | Unlocked when |
 |---|---|---|
-| **1. Drafting (today)** | The salesperson generates, edits, copies and rates each email. Feedback and edit share are recorded. | Done |
-| **2. One-click send** | A **Send** button that sends through the salesperson's own Gmail or Outlook (OAuth connector), from their address, with the edited text. Sent emails are logged against the run. | Salespeople rate most emails 4 or 5 and rarely need heavy edits |
-| **3. Daily drafts from the CRM** | A scheduled job (for example every morning) reads new leads that salespeople have added to the CRM, generates drafts, and puts them in an **approval queue**: one click to approve, edit or reject. | The golden set (below) passes consistently and approvals rarely need edits |
-| **4. Automatic sending for the safest cases** | Emails that pass every check, come from tailored or description-only data with high confidence, and fit a segment with a proven track record are sent automatically. Everything else stays in the approval queue. | Approved-without-edit rate stays above an agreed bar, and reply rates on automatic sends match human-reviewed ones |
+| **1. Drafting** (today) | Generate, edit, copy, rate | Done |
+| **2. One-click send** | Send from the salesperson's own Gmail or Outlook | Most emails rated 4–5 with few heavy edits |
+| **3. Daily drafts from the CRM** | A morning job drafts emails for new leads into an approval queue | The golden set passes and approvals rarely need edits |
+| **4. Auto-send the safest cases** | High-confidence emails in proven segments send on their own; the rest stay in the queue | Auto-sent emails get the same reply rate as reviewed ones |
 
-**The golden set.** Turn real feedback into a growing eval: emails salespeople rated 5 and sent unchanged become "good" examples, and low-rated or heavily edited ones become test cases with notes on what was wrong. The eval in `scripts/eval.js` already runs fixed scenarios; the golden set extends it with real cases, and every prompt or model change must pass it before release.
-
-**Follow-up sequences.** Most replies to cold outreach come after the first email, not from it. Add 2 or 3 short follow-ups a few days apart, each one adding something new (a different ticket type, a one-line idea) instead of "just bumping this". They go through the same checker, and the sequence stops as soon as the prospect replies, books a call or opts out.
-
-**Do-not-contact checks before anything is written.** Look the company and the person up in the CRM first and stop if they are an existing customer, have an open deal with someone else on the team, or opted out. Emailing a current customer as a cold prospect is the classic embarrassing mistake, and it is cheap to prevent.
-
-**Learn from replies.** Record the outcome of every email sent, linked to its `runId`: replied (positive, neutral or negative), meeting booked, no reply, bounced or opted out. Then analyse what wins:
-- Reply rate by **tone**, **confidence tier**, **company type**, **model** and **which helper facts were used**. `runs.jsonl` already records all of these per email.
-- Reply rate by **subject style**, **email length** and **how much the salesperson edited** before sending.
-- Read the emails that won and lost side by side to find patterns the numbers miss.
-
-The findings feed straight back: winning emails join the golden set, losing patterns become new checks or prompt changes, and the confidence thresholds get tuned against real replies instead of the 45 calls they come from today. That replaces "salespeople liked it" with "prospects answered it".
-
-**Guardrails that come with sending**, whichever stage:
-- **An opt-out line and suppression list**, plus GDPR handling for EU/UK recipients.
-- **Sending limits** per mailbox and per day, so deliverability and sender reputation are protected.
-- **Measure outcomes, not just scores:** replies and meetings booked per segment, tone and model, fed back into the thresholds.
-- **A kill switch** and an audit trail of what was sent, by whom or by which rule, and from which prompt version.
+* **Golden set:** emails rated 5 and sent unchanged become good examples; low-rated or heavily edited ones become test cases. Every prompt or model change must pass it.
+* **Follow-ups:** 2–3 short follow-ups that each add something new, stopping when the prospect replies or opts out.
+* **Do-not-contact checks:** skip existing customers, open deals and opt-outs before anything is written.
+* **Learn from replies:** record each email's outcome (reply, meeting, no reply, opt-out) by `runId`, then compare reply rates by tone, confidence tier, company type, model and subject. `runs.jsonl` already records most of this. Winners feed the golden set; losers become new checks.
+* **Guardrails:** opt-out line and GDPR handling, daily sending limits per mailbox, a kill switch, and an audit trail.
 
 ## Stack
 
