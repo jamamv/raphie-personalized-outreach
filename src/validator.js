@@ -10,6 +10,14 @@
 export const MAX_SENTENCE_WORDS = 30;
 export const MAX_EXCLAMATIONS = 1;
 
+// Words that make copy read as AI-written or corporate. Not one of Alex's hard
+// rules, so they produce warnings (and an eval metric), not failures.
+export const BUZZWORDS = [
+  'leverag', 'seamless', 'synerg', 'unlock', 'game-changer', 'game changer', 'cutting-edge',
+  'elevate', 'delve', 'robust', 'empower', 'revolutioni', 'best-in-class', 'world-class',
+  'holistic', 'paradigm', 'transformative', 'supercharg', 'streamlin', 'finds you well', 'fast-paced',
+];
+
 const ABBREVIATIONS = ['e.g.', 'i.e.', 'etc.', 'vs.', 'Mr.', 'Ms.', 'Mrs.', 'Dr.', 'U.S.', 'U.K.', 'Inc.', 'Ltd.', 'approx.'];
 const DOT = '\u0000';
 
