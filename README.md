@@ -4,6 +4,9 @@ Writes cold outreach emails for Raphie's sales team: personalised to the prospec
 
 **Live demo:** https://raphie-personalized-outreach.vercel.app/ (the interface and company lookup work; generating emails needs an OpenAI key to be added in Vercel, see [Deploy to Vercel](#deploy-to-vercel)).
 
+<img width="1128" height="661" alt="image" src="https://github.com/user-attachments/assets/dd716aa6-f343-4ffb-9b0d-c32e050b8338" />
+
+
 ## Quick start
 
 Requires Node 20+.
