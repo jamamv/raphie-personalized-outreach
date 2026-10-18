@@ -2,6 +2,7 @@
  * The one pipeline both the CLI and the web UI use:
  *   helper lookup -> assess (confidence + field checks) -> generate + validate -> log
  */
+import { randomUUID } from 'node:crypto';
 import OpenAI from 'openai';
 import { config } from './config.js';
 import { fetchCompanyAnalysis } from './helper.js';
@@ -46,6 +47,7 @@ export async function createEmail({ input, lookup, model = config.model, log = (
   const result = await generateEmail({ client: getClient(), model, input, assessment, maxRepairs: config.maxRepairs, log });
   const run = {
     ...result,
+    runId: randomUUID(),
     model,
     ms: Date.now() - started,
     tier: assessment.tier,
@@ -56,6 +58,7 @@ export async function createEmail({ input, lookup, model = config.model, log = (
   if (record && config.runLog && config.runLog !== 'off') {
     await appendRunLog(config.runLog, {
       time: new Date().toISOString(),
+      runId: run.runId,
       input,
       helper: { ok: helper.ok, reason: helper.reason, attempts: helper.attempts, ms: helper.ms, raw: helper.data },
       tier: assessment.tier,

@@ -2,7 +2,7 @@
 
 Writes cold outreach emails for Raphie's sales team. You give it a recipient, a company, a one-line description and a tone. It looks the company up with the go-to-market helper, asks OpenAI to write the email, and **only shows an email after code has verified every one of Raphie's writing rules**.
 
-It runs as a CLI (the brief's requirement) and as a small chat-style web page. Both use the same core.
+It runs as a CLI (the brief's requirement) and as a small web page for salespeople. Both use the same core.
 
 ## Quick start
 
@@ -13,7 +13,8 @@ npm install
 cp .env.example .env          # add your OPENAI_API_KEY
 npm start                     # CLI: asks the four questions
 npm run web                   # web UI at http://localhost:3000
-npm test                      # 36 unit tests, no network or key needed
+npm run feedback              # how salespeople rated the emails
+npm test                      # 40 unit tests, no network or key needed
 npm run eval -- --reps 2      # live eval against OpenAI (see Evaluation)
 ```
 
@@ -46,6 +47,7 @@ prompts/system.md ──► OpenAI (structured output) ──► sanitize ──
 | `src/validator.js`, `src/sanitize.js` | The rules, in code. |
 | `src/core.js` | The shared pipeline used by the CLI and the web server. Writes `runs.jsonl`. |
 | `src/cli.js`, `src/web/` | The two interfaces. |
+| `src/feedback.js` | Validates salesperson scores and summarises them (`npm run feedback`). |
 | `scripts/eval.js`, `scripts/compare.js` | Live evaluation and before/after comparison. |
 
 ## What the helper endpoint actually does
@@ -187,13 +189,22 @@ Best,
 Raphie
 ```
 
+## Web UI
+
+A single form (recipient, company, description, tone) with the result beside it.
+
+- **The company lookup starts when you leave the company field**, and the page shows what was found before you generate ("Company data found (confidence 0.83): the email will be tailored", or "unreliable: writing from your description").
+- **The email is editable.** Edits are checked live with the same `validator.js` the server uses (the page loads it directly), so a salesperson cannot unknowingly add an em dash (macOS turns `--` into one) or a 31-word sentence. Copy still works, labelled "Copy anyway", because the salesperson has the final say. "Undo my edits" restores the original.
+- **Feedback.** Each email can be scored 1 to 5 ("Unusable" to "Send as is") with an optional comment. The page also records whether it was copied and what share of words were changed, which is an honest signal even when nobody leaves a score. `npm run feedback` summarises it: average score, share of 4s and 5s, how often emails are edited, and scores by tone, confidence tier and model.
+- **No hidden state.** The form is the only source of inputs, and stale responses are ignored, so an old button can never act on cleared data. (The first, chat-style version had exactly that bug.)
+
 ## Run log
 
-Every CLI or web run appends one line to `runs.jsonl` (gitignored): inputs, the raw helper response, tier, field report, model, company type, whether it passed, repairs, warnings, the email and timing. Use it to compare runs (same company, other tone or model) and to review real confidence scores over time. Set `RUN_LOG=off` to disable it.
+Every CLI or web run appends one line to `runs.jsonl` (gitignored), with a `runId` that feedback in `feedback.jsonl` refers to: inputs, the raw helper response, tier, field report, model, company type, whether it passed, repairs, warnings, the email and timing. Use it to compare runs (same company, other tone or model) and to review real confidence scores over time. Set `RUN_LOG=off` to disable it.
 
 ## Configuration
 
-All settings are optional except the key (see `.env.example`): `OPENAI_API_KEY`, `OPENAI_MODEL` (default `gpt-5.5`), `MAX_REPAIRS` (2), `HELPER_BUDGET_MS` (20000), `RUN_LOG` (`runs.jsonl`), `PORT` (3000).
+All settings are optional except the key (see `.env.example`): `OPENAI_API_KEY`, `OPENAI_MODEL` (default `gpt-5.5`), `MAX_REPAIRS` (2), `HELPER_BUDGET_MS` (20000), `RUN_LOG` (`runs.jsonl`), `FEEDBACK_LOG` (`feedback.jsonl`), `PORT` (3000).
 
 ## With more time
 

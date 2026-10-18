@@ -7,262 +7,364 @@
 <style>
   :root {
     --bg: #faf9f6; --surface: #ffffff; --text: #1f1e1c; --muted: #6b6862; --line: #e6e3dc;
-    --bubble: #efece6; --accent: #1f1e1c; --accent-text: #ffffff; --ok: #2f7a4a; --warn: #9a5b13; --bad: #b3261e;
+    --soft: #efece6; --accent: #1f1e1c; --accent-text: #ffffff; --ok: #2f7a4a; --warn: #9a5b13; --bad: #b3261e;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #1b1a18; --surface: #252421; --text: #ecebe7; --muted: #a29f97; --line: #393833;
-      --bubble: #2f2e2a; --accent: #ecebe7; --accent-text: #1b1a18; --ok: #6cc28c; --warn: #e0a85a; --bad: #f2867d;
+      --soft: #2f2e2a; --accent: #ecebe7; --accent-text: #1b1a18; --ok: #6cc28c; --warn: #e0a85a; --bad: #f2867d;
     }
   }
   * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
-  body {
-    background: var(--bg); color: var(--text);
-    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    display: flex; flex-direction: column;
-  }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   header { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: center; font-weight: 600; font-size: 15px; }
   header span { color: var(--muted); font-weight: 400; }
-  main { flex: 1; overflow-y: auto; }
-  .thread { max-width: 720px; margin: 0 auto; padding: 24px 16px 8px; display: flex; flex-direction: column; gap: 18px; }
-  .msg { display: flex; gap: 12px; align-items: flex-start; }
-  .msg.user { justify-content: flex-end; }
-  .msg.user .text { background: var(--bubble); padding: 10px 14px; border-radius: 18px; max-width: 80%; white-space: pre-wrap; overflow-wrap: anywhere; }
-  .avatar { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-text); display: grid; place-items: center; font-size: 13px; font-weight: 700; margin-top: 1px; }
-  .msg.bot .body { flex: 1; min-width: 0; }
-  .chips { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-  button { font: inherit; cursor: pointer; }
-  .chip { border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 999px; padding: 6px 16px; }
-  .chip:hover { border-color: var(--muted); }
-  .card { margin-top: 10px; border: 1px solid var(--line); background: var(--surface); border-radius: 14px; overflow: hidden; }
-  .card pre { margin: 0; padding: 16px 18px; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
-  .actions { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--line); flex-wrap: wrap; }
-  .actions button { border: 0; background: transparent; color: var(--muted); padding: 6px 10px; border-radius: 8px; font-size: 14px; }
-  .actions button:hover { background: var(--bubble); color: var(--text); }
-  .meta { color: var(--muted); font-size: 14px; margin-top: 8px; }
-  details { margin-top: 8px; font-size: 14px; color: var(--muted); }
-  details summary { cursor: pointer; }
-  details pre { margin: 8px 0 0; white-space: pre-wrap; font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
-  .note { color: var(--warn); font-size: 14px; margin-top: 6px; }
-  .error { color: var(--bad); }
-  .thinking { color: var(--muted); }
+  main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 48px; display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 24px; align-items: start; }
+  @media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+  h2 { font-size: 15px; margin: 0 0 14px; }
+  label { display: block; font-size: 14px; font-weight: 600; margin: 14px 0 6px; }
+  label:first-of-type { margin-top: 0; }
+  .help { font-weight: 400; color: var(--muted); }
+  input[type=text], textarea {
+    width: 100%; font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; outline: none;
+  }
+  input[type=text]:focus, textarea:focus { border-color: var(--muted); }
+  textarea { resize: vertical; }
+  #description { min-height: 96px; }
+  .status { font-size: 13px; color: var(--muted); margin-top: 6px; min-height: 1.4em; }
+  .status.tailored { color: var(--ok); }
+  .status.ignored, .status.none { color: var(--warn); }
+  .segmented { display: inline-flex; background: var(--soft); border-radius: 10px; padding: 3px; gap: 3px; }
+  .segmented input { position: absolute; opacity: 0; pointer-events: none; }
+  .segmented label { margin: 0; font-weight: 500; padding: 6px 16px; border-radius: 8px; cursor: pointer; color: var(--muted); }
+  .segmented input:checked + label { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .segmented input:focus-visible + label { outline: 2px solid var(--muted); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 18px; }
+  button { font: inherit; cursor: pointer; border-radius: 10px; }
+  .primary { background: var(--accent); color: var(--accent-text); border: 0; padding: 10px 18px; font-weight: 600; }
+  .primary:disabled { opacity: .4; cursor: default; }
+  .ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 8px 14px; }
+  .ghost:hover:not(:disabled) { color: var(--text); border-color: var(--muted); }
+  .ghost:disabled { opacity: .4; cursor: default; }
+  .kbd { color: var(--muted); font-size: 12px; }
+  .error { color: var(--bad); font-size: 14px; margin-top: 10px; }
+  .empty { color: var(--muted); text-align: center; padding: 56px 12px; }
   .thinking::after { content: ''; animation: dots 1.2s steps(4) infinite; }
   @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
-  footer { padding: 8px 16px 16px; }
-  .composer { max-width: 720px; margin: 0 auto; display: flex; gap: 8px; align-items: flex-end; border: 1px solid var(--line); background: var(--surface); border-radius: 22px; padding: 8px 8px 8px 16px; }
-  .composer:focus-within { border-color: var(--muted); }
-  textarea { flex: 1; border: 0; outline: 0; resize: none; background: transparent; color: var(--text); font: inherit; max-height: 160px; padding: 6px 0; }
-  .send { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-text); display: grid; place-items: center; }
-  .send:disabled { opacity: .35; cursor: default; }
-  .hint { max-width: 720px; margin: 6px auto 0; color: var(--muted); font-size: 12px; text-align: center; }
+  .result-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .chip { font-size: 13px; border-radius: 999px; padding: 3px 10px; background: var(--soft); }
+  .chip.ok { color: var(--ok); }
+  .chip.bad { color: var(--bad); }
+  #email { min-height: 320px; line-height: 1.6; padding: 14px 16px; background: var(--surface); }
+  .problems { margin: 8px 0 0; padding-left: 18px; color: var(--bad); font-size: 14px; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 12px; }
+  details { margin-top: 8px; font-size: 13px; color: var(--muted); }
+  details summary { cursor: pointer; }
+  details pre { margin: 8px 0 0; white-space: pre-wrap; font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .feedback { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 16px; }
+  .scores { display: flex; gap: 6px; flex-wrap: wrap; }
+  .scores button { width: 40px; height: 36px; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+  .scores button[aria-pressed=true] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .scale { display: flex; justify-content: space-between; max-width: 224px; font-size: 12px; color: var(--muted); margin-top: 4px; }
+  #comment { margin-top: 10px; min-height: 60px; }
+  .saved { color: var(--ok); font-size: 14px; }
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
 <header>Raphie Outreach <span>· cold email writer</span></header>
-<main id="scroll"><div class="thread" id="thread"></div></main>
-<footer>
-  <form class="composer" id="composer">
-    <textarea id="input" rows="1" placeholder="Type your answer..." autocomplete="off"></textarea>
-    <button class="send" id="send" type="submit" aria-label="Send" disabled>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 13V3M8 3L3.5 7.5M8 3l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
+<main>
+  <form class="panel" id="form" novalidate>
+    <h2>Who are you writing to?</h2>
+    <label for="recipientName">Recipient's name</label>
+    <input type="text" id="recipientName" placeholder="e.g. Jane Doe" maxlength="100" autocomplete="off" required>
+
+    <label for="companyName">Company</label>
+    <input type="text" id="companyName" placeholder="e.g. Riverline Sportsbook" maxlength="120" autocomplete="off" required>
+    <div class="status" id="lookupStatus" aria-live="polite"></div>
+
+    <label for="description">What does the company do? <span class="help">What does their support deal with?</span></label>
+    <textarea id="description" maxlength="600" placeholder="e.g. A sportsbook operator with high withdrawal volume and frequent KYC tickets" required></textarea>
+
+    <label>Tone</label>
+    <div class="segmented" role="radiogroup" aria-label="Tone">
+      <input type="radio" name="tone" id="toneDirect" value="direct" checked><label for="toneDirect">Direct</label>
+      <input type="radio" name="tone" id="toneWarm" value="warm"><label for="toneWarm">Warm</label>
+    </div>
+
+    <div class="row">
+      <button type="submit" class="primary" id="generate" disabled>Generate email</button>
+      <button type="button" class="ghost" id="clear">Clear</button>
+      <span class="kbd">⌘/Ctrl + Enter</span>
+    </div>
+    <div class="error hidden" id="formError" role="alert"></div>
   </form>
-  <p class="hint">Enter to send · Shift+Enter for a new line</p>
-</footer>
 
-<script>
-const QUESTIONS = [
-  { key: 'recipientName', ask: 'Hi. Who are you emailing? Their full name is fine.' },
-  { key: 'companyName', ask: 'Which company do they work at?' },
-  { key: 'description', ask: 'Describe the company in a sentence or two. What do they do, and what does their support team deal with?' },
-  { key: 'tone', ask: 'Which tone should the email have?', choices: ['Direct', 'Warm'] },
-];
+  <section class="panel" id="result" aria-live="polite">
+    <div class="empty" id="emptyState">Fill in the form and press <strong>Generate email</strong>.<br>You can edit the email before copying it.</div>
+    <div class="empty thinking hidden" id="loadingState">Writing the email</div>
+    <div class="hidden" id="errorState">
+      <div class="error" id="errorText"></div>
+      <div class="row"><button type="button" class="ghost" id="retry">Try again</button></div>
+    </div>
 
-const thread = document.getElementById('thread');
-const scroller = document.getElementById('scroll');
-const form = document.getElementById('composer');
-const input = document.getElementById('input');
-const send = document.getElementById('send');
+    <div class="hidden" id="emailState">
+      <div class="result-head">
+        <h2 style="margin:0">Your email <span class="help">(editable)</span></h2>
+        <span class="chip" id="ruleChip"></span>
+      </div>
+      <textarea id="email" spellcheck="true" aria-label="Email text, editable"></textarea>
+      <ul class="problems" id="problems"></ul>
+      <div class="row">
+        <button type="button" class="primary" id="copy">Copy</button>
+        <button type="button" class="ghost" id="regenerate">Regenerate</button>
+        <button type="button" class="ghost" id="undo" disabled>Undo my edits</button>
+      </div>
+      <div class="meta" id="meta"></div>
+      <details>
+        <summary>Why this email</summary>
+        <pre id="why"></pre>
+      </details>
 
-let answers = {};
-let step = 0;
-let lookupId = null;
+      <div class="feedback">
+        <h2>How good is this email?</h2>
+        <div class="scores" id="scores">
+          <button type="button" data-score="1">1</button><button type="button" data-score="2">2</button><button type="button" data-score="3">3</button><button type="button" data-score="4">4</button><button type="button" data-score="5">5</button>
+        </div>
+        <div class="scale"><span>Unusable</span><span>Send as is</span></div>
+        <textarea id="comment" maxlength="1000" placeholder="Optional: what would make it better?"></textarea>
+        <div class="row">
+          <button type="button" class="ghost" id="sendFeedback" disabled>Send feedback</button>
+          <span class="saved hidden" id="feedbackSaved">Thanks, saved.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { validateEmail } from '/validator.js';
+
+const $ = (id) => document.getElementById(id);
+const form = $('form');
+const fields = { recipientName: $('recipientName'), companyName: $('companyName'), description: $('description') };
+const states = ['emptyState', 'loadingState', 'errorState', 'emailState'];
+
+let lookup = { companyName: '', lookupId: null };
+let current = null; // { runId, original, inputs, copied }
+let requestSeq = 0;
+let score = null;
 let busy = false;
 
-const el = (tag, cls, text) => {
-  const node = document.createElement(tag);
-  if (cls) node.className = cls;
-  if (text !== undefined) node.textContent = text;
-  return node;
-};
-const scrollDown = () => scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
+const values = () => ({
+  recipientName: fields.recipientName.value.trim(),
+  companyName: fields.companyName.value.trim(),
+  description: fields.description.value.trim(),
+  tone: form.querySelector('input[name=tone]:checked').value,
+});
+const isComplete = () => Object.values(values()).every(Boolean);
+const show = (id) => states.forEach((s) => $(s).classList.toggle('hidden', s !== id));
 
-function botMessage() {
-  const row = el('div', 'msg bot');
-  row.append(el('div', 'avatar', 'R'));
-  const body = el('div', 'body');
-  row.append(body);
-  thread.append(row);
-  scrollDown();
-  return body;
-}
-
-function userMessage(text) {
-  const row = el('div', 'msg user');
-  row.append(el('div', 'text', text));
-  thread.append(row);
-  scrollDown();
-}
-
-function setComposer(enabled, placeholder = 'Type your answer...') {
-  input.disabled = !enabled;
-  input.placeholder = placeholder;
-  send.disabled = !enabled || !input.value.trim();
-  if (enabled) input.focus();
-}
-
-function ask() {
-  const q = QUESTIONS[step];
-  const body = botMessage();
-  body.append(el('div', null, q.ask));
-  if (q.choices) {
-    const chips = el('div', 'chips');
-    for (const choice of q.choices) {
-      const chip = el('button', 'chip', choice);
-      chip.type = 'button';
-      chip.onclick = () => { if (!busy && QUESTIONS[step] === q) answer(choice); };
-      chips.append(chip);
-    }
-    body.append(chips);
-    setComposer(true, 'Or type "direct" or "warm"...');
-  } else {
-    setComposer(true);
-  }
-}
-
-async function post(url, data) {
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+async function api(method, url, body) {
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) });
   const json = await res.json().catch(() => ({ error: `Server error (${res.status})` }));
   if (!res.ok) throw new Error(json.error || `Server error (${res.status})`);
   return json;
 }
 
-function answer(raw) {
-  const value = raw.trim();
-  if (!value) return;
-  const q = QUESTIONS[step];
-  if (q.key === 'tone' && !['direct', 'warm'].includes(value.toLowerCase())) {
-    userMessage(value);
-    botMessage().append(el('div', null, 'Please pick "Direct" or "Warm".'));
+// --- Company lookup: starts as soon as the company name is entered ---------
+async function startLookup() {
+  const companyName = fields.companyName.value.trim();
+  if (!companyName || companyName === lookup.companyName) return;
+  lookup = { companyName, lookupId: null };
+  const status = $('lookupStatus');
+  status.className = 'status thinking';
+  status.textContent = 'Looking up the company';
+  try {
+    const { lookupId } = await api('POST', '/api/lookup', { companyName });
+    if (lookup.companyName !== companyName) return;
+    lookup.lookupId = lookupId;
+    const r = await api('GET', `/api/lookup/${lookupId}`);
+    if (lookup.companyName !== companyName) return;
+    const text = {
+      tailored: `Company data found (confidence ${r.confidence?.toFixed(2)}): the email will be tailored.`,
+      generic: `Some company data (confidence ${r.confidence?.toFixed(2)}): only broad facts will be used.`,
+      ignored: `Company data is unreliable (confidence ${r.confidence?.toFixed(2) ?? 'n/a'}): writing from your description.`,
+      none: 'Company lookup unavailable: writing from your description.',
+    }[r.tier];
+    status.className = `status ${r.tier}`;
+    status.textContent = text;
+  } catch {
+    if (lookup.companyName === companyName) {
+      status.className = 'status none';
+      status.textContent = 'Company lookup unavailable: writing from your description.';
+    }
+  }
+}
+fields.companyName.addEventListener('change', startLookup);
+
+// --- Generate -----------------------------------------------------------------
+async function generate() {
+  if (!isComplete()) {
+    $('formError').textContent = 'Please fill in every field.';
+    $('formError').classList.remove('hidden');
     return;
   }
-  userMessage(value);
-  answers[q.key] = q.key === 'tone' ? value.toLowerCase() : value;
-
-  // Start the slow company lookup right away, while the user keeps typing.
-  if (q.key === 'companyName') {
-    lookupId = null;
-    post('/api/lookup', { companyName: value }).then((r) => { lookupId = r.lookupId; }).catch(() => {});
-  }
-
-  step += 1;
-  if (step < QUESTIONS.length) ask();
-  else generate();
-}
-
-async function generate() {
-  busy = true;
-  setComposer(false, 'Writing...');
-  const body = botMessage();
-  const status = el('div', 'thinking', `Looking up ${answers.companyName} and writing the email`);
-  body.append(status);
+  $('formError').classList.add('hidden');
+  const inputs = values();
+  const seq = ++requestSeq;
+  setBusy(true);
+  show('loadingState');
   try {
-    const r = await post('/api/generate', { ...answers, lookupId });
-    status.remove();
-    renderResult(body, r);
+    const lookupId = lookup.companyName === inputs.companyName ? lookup.lookupId : null;
+    const r = await api('POST', '/api/generate', { ...inputs, lookupId });
+    if (seq !== requestSeq) return;
+    if (!r.ok) {
+      showError(`No version passed every writing rule after ${r.attempts} attempts, so nothing is shown. ${r.violations.join(' ')}`);
+    } else {
+      renderEmail(r, inputs);
+    }
   } catch (e) {
-    status.className = 'error';
-    status.textContent = `Sorry, that failed: ${e.message}`;
-    body.append(actionsRow([['Try again', () => generate()], ['New email', reset]]));
+    if (seq === requestSeq) showError(`Sorry, that failed: ${e.message}`);
+  } finally {
+    if (seq === requestSeq) setBusy(false);
   }
-  busy = false;
-  setComposer(false, 'Use the buttons above');
-  scrollDown();
 }
 
-function actionsRow(buttons) {
-  const row = el('div', 'actions');
-  for (const [label, fn] of buttons) {
-    const b = el('button', null, label);
-    b.type = 'button';
-    b.onclick = () => fn(b);
-    row.append(b);
-  }
-  return row;
+function setBusy(value) {
+  busy = value;
+  $('generate').disabled = busy || !isComplete();
+  $('generate').textContent = busy ? 'Writing...' : 'Generate email';
+  $('regenerate').disabled = busy;
 }
 
-function renderResult(body, r) {
-  if (r.ok) {
-    body.append(el('div', null, `Here's your email for ${answers.companyName}:`));
-    const card = el('div', 'card');
-    card.append(el('pre', null, r.email));
-    card.append(actionsRow([
-      ['Copy', async (b) => {
-        try { await navigator.clipboard.writeText(r.email); b.textContent = 'Copied'; }
-        catch { b.textContent = 'Copy failed'; }
-        setTimeout(() => { b.textContent = 'Copy'; }, 1500);
-      }],
-      ['Regenerate', () => !busy && generate()],
-      ['New email', () => !busy && reset()],
-    ]));
-    body.append(card);
-  } else {
-    body.append(el('div', 'error', `No version passed every rule after ${r.attempts} attempts, so nothing is shown. Problems:`));
-    for (const v of r.violations) body.append(el('div', 'note', `• ${v}`));
-    body.append(actionsRow([['Try again', () => !busy && generate()], ['New email', () => !busy && reset()]]));
-  }
-  for (const w of r.warnings) body.append(el('div', 'note', `Note: ${w}`));
+function showError(text) {
+  $('errorText').textContent = text;
+  show('errorState');
+}
 
+function renderEmail(r, inputs) {
+  current = { runId: r.runId, original: r.email, inputs, copied: false };
+  $('email').value = r.email;
+  autosize();
+  checkRules();
   const facts = r.helperFactsUsed?.length ? r.helperFactsUsed.join('; ') : 'none';
-  body.append(el('div', 'meta', `Written as: ${r.accountType} · helper facts used: ${facts} · ${r.seconds}s`));
-  const details = el('details');
-  details.append(el('summary', null, 'Why this email'));
-  details.append(el('pre', null, r.explanation.join('\n')));
-  body.append(details);
+  $('meta').textContent = `Written as: ${r.accountType} · helper facts used: ${facts} · ${r.model} · ${r.seconds}s`;
+  $('why').textContent = [...r.explanation, ...r.warnings.map((w) => `Note: ${w}`)].join('\n');
+  resetFeedback();
+  show('emailState');
 }
 
-function reset() {
-  answers = {};
-  step = 0;
-  lookupId = null;
-  thread.append(el('hr', null));
-  thread.lastChild.style.cssText = 'border:0;border-top:1px solid var(--line);margin:4px 0;width:100%';
-  ask();
+// --- Editing: the same rule checks as the server, live -------------------------
+function checkRules() {
+  if (!current) return;
+  const text = $('email').value;
+  const { ok, violations } = validateEmail(text, { recipientName: current.inputs.recipientName, companyName: current.inputs.companyName });
+  const chip = $('ruleChip');
+  chip.className = `chip ${ok ? 'ok' : 'bad'}`;
+  chip.textContent = ok ? '✓ Passes every rule' : `✗ ${violations.length} rule problem${violations.length > 1 ? 's' : ''}`;
+  $('problems').replaceChildren(...violations.map((v) => Object.assign(document.createElement('li'), { textContent: v.message })));
+  $('copy').textContent = ok ? 'Copy' : 'Copy anyway';
+  $('undo').disabled = text === current.original;
 }
 
-input.addEventListener('input', () => {
-  input.style.height = 'auto';
-  input.style.height = `${Math.min(input.scrollHeight, 160)}px`;
-  send.disabled = input.disabled || !input.value.trim();
-});
-input.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
-    e.preventDefault();
-    form.requestSubmit();
+function autosize() {
+  const el = $('email');
+  el.style.height = 'auto';
+  el.style.height = `${Math.max(320, el.scrollHeight + 2)}px`;
+}
+
+// Share of words changed, from a word-level longest common subsequence.
+function editRatio(before, after) {
+  const a = before.split(/\s+/).filter(Boolean);
+  const b = after.split(/\s+/).filter(Boolean);
+  if (!a.length && !b.length) return 0;
+  let prev = new Array(b.length + 1).fill(0);
+  for (let i = 1; i <= a.length; i++) {
+    const row = new Array(b.length + 1).fill(0);
+    for (let j = 1; j <= b.length; j++) row[j] = a[i - 1] === b[j - 1] ? prev[j - 1] + 1 : Math.max(prev[j], row[j - 1]);
+    prev = row;
   }
-});
-form.addEventListener('submit', (e) => {
-  e.preventDefault();
-  if (busy || input.disabled || !input.value.trim()) return;
-  const value = input.value;
-  input.value = '';
-  input.style.height = 'auto';
-  send.disabled = true;
-  answer(value);
+  return Number((1 - prev[b.length] / Math.max(a.length, b.length)).toFixed(3));
+}
+
+$('email').addEventListener('input', () => { autosize(); checkRules(); });
+$('undo').addEventListener('click', () => { $('email').value = current.original; autosize(); checkRules(); });
+$('copy').addEventListener('click', async () => {
+  const button = $('copy');
+  const label = button.textContent;
+  try {
+    await navigator.clipboard.writeText($('email').value);
+    current.copied = true;
+    button.textContent = 'Copied';
+  } catch {
+    $('email').select();
+    button.textContent = 'Press ⌘/Ctrl + C';
+  }
+  setTimeout(() => { button.textContent = label; }, 1500);
 });
 
-ask();
+// --- Feedback ------------------------------------------------------------------
+function resetFeedback() {
+  score = null;
+  $('comment').value = '';
+  $('sendFeedback').disabled = true;
+  $('feedbackSaved').classList.add('hidden');
+  document.querySelectorAll('#scores button').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+}
+
+$('scores').addEventListener('click', (e) => {
+  const button = e.target.closest('button[data-score]');
+  if (!button) return;
+  score = Number(button.dataset.score);
+  document.querySelectorAll('#scores button').forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+  $('sendFeedback').disabled = false;
+  $('feedbackSaved').classList.add('hidden');
+});
+
+$('sendFeedback').addEventListener('click', async () => {
+  if (!current || !score) return;
+  $('sendFeedback').disabled = true;
+  try {
+    await api('POST', '/api/feedback', {
+      runId: current.runId,
+      score,
+      comment: $('comment').value,
+      copied: current.copied,
+      editRatio: editRatio(current.original, $('email').value),
+      finalEmail: $('email').value,
+    });
+    $('feedbackSaved').textContent = 'Thanks, saved.';
+  } catch (e) {
+    $('feedbackSaved').textContent = `Could not save: ${e.message}`;
+  }
+  $('feedbackSaved').classList.remove('hidden');
+  $('sendFeedback').disabled = false;
+});
+
+// --- Form wiring ---------------------------------------------------------------
+form.addEventListener('input', () => { $('generate').disabled = busy || !isComplete(); });
+form.addEventListener('submit', (e) => { e.preventDefault(); generate(); });
+form.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); generate(); }
+});
+$('regenerate').addEventListener('click', generate);
+$('retry').addEventListener('click', generate);
+$('clear').addEventListener('click', () => {
+  requestSeq++;
+  form.reset();
+  lookup = { companyName: '', lookupId: null };
+  current = null;
+  $('lookupStatus').textContent = '';
+  $('formError').classList.add('hidden');
+  setBusy(false);
+  show('emptyState');
+  fields.recipientName.focus();
+});
+
+fields.recipientName.focus();
 </script>
 </body>
 </html>

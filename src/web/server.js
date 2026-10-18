@@ -4,16 +4,25 @@
  *
  *   POST /api/lookup   { companyName }            -> { lookupId }
  *        Starts the slow helper call as soon as the company name is sent.
+ *   GET  /api/lookup/:id                           -> tier + field report
+ *        Waits for that lookup, so the page can show what the helper found.
  *   POST /api/generate { ...inputs, lookupId? }    -> email + explanation
  *        Only returns an email when it passed every rule.
+ *   POST /api/feedback { runId, score, ... }       -> appended to feedback.jsonl
+ *   GET  /validator.js                             -> the rules, so the page can
+ *        check a salesperson's edits with exactly the same code
  */
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { config } from '../config.js';
 import { checkInput, createEmail, startLookup } from '../core.js';
+import { assessHelper, describeAssessment } from '../insights.js';
+import { checkFeedback } from '../feedback.js';
+import { appendRunLog } from '../runlog.js';
 
 const PAGE = new URL('./index.html', import.meta.url);
+const VALIDATOR = new URL('../validator.js', import.meta.url);
 const LOOKUP_TTL_MS = 10 * 60 * 1000;
 const MAX_BODY = 10_000;
 const lookups = new Map(); // lookupId -> { companyName, promise, expires }
@@ -52,6 +61,20 @@ async function handleLookup(req, res) {
   sendJson(res, 200, { lookupId });
 }
 
+async function handleLookupResult(res, lookupId) {
+  const entry = lookups.get(lookupId);
+  if (!entry) return sendJson(res, 404, { error: 'Unknown or expired lookup' });
+  const assessment = assessHelper(await entry.promise);
+  sendJson(res, 200, { companyName: entry.companyName, tier: assessment.tier, confidence: assessment.confidence, explanation: describeAssessment(assessment) });
+}
+
+async function handleFeedback(req, res) {
+  const { record, error } = checkFeedback(await readJson(req));
+  if (error) return sendJson(res, 400, { error });
+  if (config.feedbackLog && config.feedbackLog !== 'off') await appendRunLog(config.feedbackLog, record);
+  sendJson(res, 200, { saved: true });
+}
+
 async function handleGenerate(req, res) {
   const body = await readJson(req);
   const input = {
@@ -70,6 +93,7 @@ async function handleGenerate(req, res) {
   const r = await createEmail({ input, lookup });
   sendJson(res, 200, {
     ok: r.ok,
+    runId: r.runId,
     email: r.ok ? r.email : null, // a failing draft is never shown as an email
     violations: r.ok ? [] : r.violations.map((v) => v.message),
     warnings: r.warnings.map((w) => w.message),
@@ -90,7 +114,14 @@ export function createApp() {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         return res.end(await readFile(PAGE));
       }
+      if (req.method === 'GET' && req.url === '/validator.js') {
+        res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' });
+        return res.end(await readFile(VALIDATOR));
+      }
+      const lookupMatch = req.method === 'GET' && req.url.match(/^\/api\/lookup\/([0-9a-f-]{36})$/);
+      if (lookupMatch) return await handleLookupResult(res, lookupMatch[1]);
       if (req.method === 'POST' && req.url === '/api/lookup') return await handleLookup(req, res);
+      if (req.method === 'POST' && req.url === '/api/feedback') return await handleFeedback(req, res);
       if (req.method === 'POST' && req.url === '/api/generate') return await handleGenerate(req, res);
       sendJson(res, 404, { error: 'Not found' });
     } catch (e) {

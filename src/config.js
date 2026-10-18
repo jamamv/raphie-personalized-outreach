@@ -16,5 +16,6 @@ export const config = {
     'https://code-challenge-basic-463015353641.us-central1.run.app/company-analysis',
   helperBudgetMs: num(process.env.HELPER_BUDGET_MS, 20000),
   runLog: process.env.RUN_LOG ?? 'runs.jsonl',
+  feedbackLog: process.env.FEEDBACK_LOG ?? 'feedback.jsonl',
   port: num(process.env.PORT, 3000),
 };
